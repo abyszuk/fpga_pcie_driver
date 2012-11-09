@@ -1,0 +1,8 @@
+#editor backup files
+*~
+
+#makefile generated
+*.o
+*.so
+*.a
+

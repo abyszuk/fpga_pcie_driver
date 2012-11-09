@@ -1,0 +1,14 @@
+#makefile symbolic link
+pciDriver.h
+
+#editor backup files
+*~
+
+#Kbuild files
+*.o
+*.ko
+*.mod.c
+Module.symvers
+modules.order
+.tmp_versions/
+.*.cmd

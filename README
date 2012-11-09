@@ -3,3 +3,31 @@
 Folder containing all of the Beam Position Monitor software.
 
 ==========================================================
+
+1. PCIE driver for FPGA device
+
+1.1. Overview
+
+This driver is based on original driver for the PCIe SG DMA project
+placed at the opencores.org
+As of now, the changes are mostly reworked Makefiles to fit into the
+directory structure at the OHWR repo; also, with present makefiles
+it's easier to cross-compile code (e.g. using buildroot).
+
+It consists of two parts:
+- kernel driver at driver/pcie
+- c/c++ library at lib/pcie
+All relevant includes are in include/pcie folder.
+
+1.2. INSTALL
+
+To compile and install kernel driver go to driver/pcie and issue 'make && make install'
+
+To install library go to lib/pcie and type 'make && make install'
+
+1.3. TODO
+
+- review and commit original test units
+- port to PowerPC
+- any changes that will be required
+

@@ -3,7 +3,7 @@
 #add relevant overrides to make use of buildroot toolchain
 BUILDROOT_DIR="/home/adrian/praca/buildroot/buildroot"
 
-KERNELDIR="$BUILDROOT_DIR/output/build/linux-3.4.7"
+KERNELDIR="$BUILDROOT_DIR/output/build/linux-3.6.8"
 INSTALLDIR="$BUILDROOT_DIR/output/target"
 
 export ARCH=x86_64

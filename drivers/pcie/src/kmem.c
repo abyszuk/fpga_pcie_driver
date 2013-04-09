@@ -24,6 +24,10 @@
 #include "kmem.h"			/* prototypes for kernel memory */
 #include "sysfs.h"			/* prototypes for sysfs */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#define VM_RESERVED (VM_DONTEXPAND | VM_DONTDUMP)
+#endif
+
 /**
  *
  * Allocates new kernel memory including the corresponding management structure, makes

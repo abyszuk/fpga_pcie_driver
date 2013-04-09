@@ -291,7 +291,7 @@ static struct pci_driver pcidriver_driver = {
  * @param pdev Pointer to the PCI device
  *
  */
-static int __devinit pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	int err;
 	int devno;
@@ -424,7 +424,7 @@ probe_pcien_fail:
  * This function is called when disconnecting a device
  *
  */
-static void __devexit pcidriver_remove(struct pci_dev *pdev)
+static void pcidriver_remove(struct pci_dev *pdev)
 {
 	pcidriver_privdata_t *privdata;
 

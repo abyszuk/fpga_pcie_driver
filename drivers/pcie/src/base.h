@@ -18,10 +18,8 @@ int pcidriver_release(struct inode *inode, struct file *filp);
 
 /* prototypes for device operations */
 static struct pci_driver pcidriver_driver;
-static int __devinit pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id);
-static void __devexit pcidriver_remove(struct pci_dev *pdev);
-
-
+static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id);
+static void pcidriver_remove(struct pci_dev *pdev);
 
 /* prototypes for module operations */
 static int __init pcidriver_init(void);

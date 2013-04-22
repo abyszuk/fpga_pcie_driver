@@ -9,7 +9,7 @@
 
 /*******************************************************************
  * Change History:
- * 
+ *
  * $Log: not supported by cvs2svn $
  * Revision 1.4  2008-01-11 10:15:59  marcus
  * Added intSource to the Wait for Interrupt call.
@@ -56,9 +56,9 @@ using namespace pciDriver;
 PciDevice::PciDevice(int number)
 {
 	struct stat tmp_stat;
-	
+
 	unsigned int temp;
-	
+
 	device = number;
 	snprintf(name, sizeof(name), "/dev/fpga%d", number);
 
@@ -122,7 +122,7 @@ void PciDevice::open()
 
 	if ((ret = ::open(name, O_RDWR)) < 0)
 		throw Exception( Exception::OPEN_FAILED );
-		
+
 	handle = ret;
 }
 
@@ -134,9 +134,9 @@ void PciDevice::open()
 void PciDevice::close()
 {
 	// do nothing, pass silently if closing a non-opened device.
-	if (handle != -1)	
+	if (handle != -1)
 		::close(handle);
-	
+
 	handle = -1;
 }
 
@@ -152,7 +152,7 @@ void PciDevice::close()
 KernelMemory& PciDevice::allocKernelMemory(unsigned int size)
 {
 	KernelMemory *km = new KernelMemory(*this, size);
-	
+
 	return *km;
 }
 
@@ -167,7 +167,7 @@ KernelMemory& PciDevice::allocKernelMemory(unsigned int size)
 UserMemory& PciDevice::mapUserMemory(void *mem, unsigned int size, bool merged)
 {
 	UserMemory *um = new UserMemory(*this, mem, size, merged);
-	
+
 	return *um;
 }
 
@@ -180,7 +180,7 @@ void PciDevice::waitForInterrupt(unsigned int int_id)
 {
 	if (handle == -1)
 		throw Exception(Exception::NOT_OPEN);
-	
+
 	if (ioctl(handle, PCIDRIVER_IOC_WAITI, int_id) != 0)
 		throw Exception(Exception::INTERRUPT_FAILED);
 }
@@ -194,7 +194,7 @@ void PciDevice::clearInterruptQueue(unsigned int int_id)
 {
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
-	
+
 	if (ioctl(handle, PCIDRIVER_IOC_CLEAR_IOQ, int_id) != 0)
 		throw Exception(Exception::INTERNAL_ERROR);
 }
@@ -219,8 +219,8 @@ unsigned int PciDevice::getBARsize(unsigned int bar)
 
 	if (ioctl(handle, PCIDRIVER_IOC_PCI_INFO, &info) != 0)
 		throw Exception( Exception::INTERNAL_ERROR );
-		
-	return info.bar_length[ bar ];	
+
+	return info.bar_length[ bar ];
 }
 
 /**
@@ -228,7 +228,7 @@ unsigned int PciDevice::getBARsize(unsigned int bar)
  * Gets the bus ID of the PCI device
  *
  */
-unsigned short PciDevice::getBus() 
+unsigned short PciDevice::getBus()
 {
 	pci_board_info info;
 
@@ -294,22 +294,12 @@ void *PciDevice::mapBAR(unsigned int bar)
 		throw Exception(Exception::INTERNAL_ERROR);
 
 	mem = mmap(0, info.bar_length[bar], PROT_WRITE | PROT_READ, MAP_SHARED, handle, 0);
-	
+
 	mmap_unlock();
 
 	if ((mem == MAP_FAILED) || (mem == NULL))
 		throw Exception(Exception::MMAP_FAILED);
 
-	// check if the BAR is not page aligned. If it is not, adjust the pointer
-	unsigned int offset = info.bar_start[bar] & pagemask;
-	
-	// adjust pointer
-	if (offset != 0) {
-		unsigned char* ptr = static_cast<unsigned char *>(mem);
-		ptr += offset;
-		mem = static_cast<void *>(ptr);
-	}
-		
 	return mem;
 }
 
@@ -331,18 +321,9 @@ void PciDevice::unmapBAR(unsigned int bar, void *ptr)
 	if (ioctl(handle, PCIDRIVER_IOC_PCI_INFO, &info) != 0)
 		throw Exception(Exception::INVALID_BAR);
 
-	unsigned int offset = info.bar_start[bar] & pagemask;
-	
-	// adjust pointer
-	if (offset != 0) {
-		unsigned long tmp = reinterpret_cast<unsigned long>(ptr);
-		tmp -= offset;
-		ptr = reinterpret_cast<void *>(tmp);
-	}
-
 	munmap(ptr, info.bar_length[bar]);
 }
-	
+
 unsigned char PciDevice::readConfigByte(unsigned int addr)
 {
 	pci_cfg_cmd cmd;
@@ -350,10 +331,10 @@ unsigned char PciDevice::readConfigByte(unsigned int addr)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_BYTE;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_RD, &cmd );
-	
+
 	return cmd.val.byte;
 }
 
@@ -364,10 +345,10 @@ unsigned short PciDevice::readConfigWord(unsigned int addr)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_WORD;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_RD, &cmd );
-	
+
 	return cmd.val.word;
 }
 
@@ -378,13 +359,13 @@ unsigned int PciDevice::readConfigDWord(unsigned int addr)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_DWORD;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_RD, &cmd );
-	
+
 	return cmd.val.dword;
 }
-	
+
 void PciDevice::writeConfigByte(unsigned int addr, unsigned char val)
 {
 	pci_cfg_cmd cmd;
@@ -392,11 +373,11 @@ void PciDevice::writeConfigByte(unsigned int addr, unsigned char val)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_BYTE;
 	cmd.val.byte = val;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_WR, &cmd );
-	
+
 	return;
 }
 
@@ -407,11 +388,11 @@ void PciDevice::writeConfigWord(unsigned int addr, unsigned short val)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_WORD;
 	cmd.val.word = val;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_WR, &cmd );
-	
+
 	return;
 }
 
@@ -422,10 +403,10 @@ void PciDevice::writeConfigDWord(unsigned int addr, unsigned int val)
 	if (handle == -1)
 		throw Exception( Exception::NOT_OPEN );
 
-	cmd.addr = addr;	
+	cmd.addr = addr;
 	cmd.size = PCIDRIVER_PCI_CFG_SZ_DWORD;
 	cmd.val.dword = val;
 	ioctl( handle, PCIDRIVER_IOC_PCI_CFG_WR, &cmd );
-	
+
 	return;
 }

@@ -224,7 +224,7 @@ void testDirectIO(pciDriver::PciDevice *dev)
 	}
 }
 
-void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long addr, unsigned long next, unsigned long size, bool inc, bool block )
+void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, bool inc, bool block )
 {
 	BDA dma;
 	const unsigned int BASE_DMA_DOWN = (0x50 >> 2);
@@ -236,8 +236,8 @@ void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long addr, unsigned lon
 	dma.reset(bar0+BASE_DMA_DOWN);
 
 	// Send a DMA transfer
-	dma.pa_h = (addr >> 32);
-	dma.pa_l = addr;
+	dma.pa_h = (pa >> 32);
+	dma.pa_l = pa;
 	dma.ha_h = (ha >> 32);
 	dma.ha_l = ha;
 	dma.length = size;
@@ -254,7 +254,7 @@ void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long addr, unsigned lon
 }
 
 
-void readDMA(uint32_t *bar0, unsigned long pa, unsigned long addr, unsigned long next, unsigned long size, bool inc, bool block )
+void readDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, bool inc, bool block )
 {
 	BDA dma;
 	const unsigned int BASE_DMA_UP = (0x2C >> 2);
@@ -267,8 +267,8 @@ void readDMA(uint32_t *bar0, unsigned long pa, unsigned long addr, unsigned long
 	// Send a DMA transfer
 	dma.pa_h = (pa >> 32);
 	dma.pa_l = pa;
-	dma.ha_h = (addr >> 32);
-	dma.ha_l = addr;
+	dma.ha_h = (ha >> 32);
+	dma.ha_l = ha;
 	dma.length = size;
 	dma.control = 0x03018000;
 	dma.next_bda_h = (next >> 32);

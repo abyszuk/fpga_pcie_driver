@@ -224,7 +224,7 @@ void testDirectIO(pciDriver::PciDevice *dev)
 	}
 }
 
-void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, bool inc, bool block )
+void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, unsigned int bar_no, bool block)
 {
 	BDA dma;
 	const unsigned int BASE_DMA_DOWN = (0x50 >> 2);
@@ -241,7 +241,7 @@ void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long 
 	dma.ha_h = (ha >> 32);
 	dma.ha_l = ha;
 	dma.length = size;
-	dma.control = 0x03018000;
+	dma.control = 0x03008000 | (bar_no << 16);
 	dma.next_bda_h = (next >> 32);
 	dma.next_bda_l = next;
 
@@ -254,7 +254,7 @@ void writeDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long 
 }
 
 
-void readDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, bool inc, bool block )
+void readDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long next, unsigned long size, unsigned int bar_no, bool block)
 {
 	BDA dma;
 	const unsigned int BASE_DMA_UP = (0x2C >> 2);
@@ -270,7 +270,7 @@ void readDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long n
 	dma.ha_h = (ha >> 32);
 	dma.ha_l = ha;
 	dma.length = size;
-	dma.control = 0x03018000;
+	dma.control = 0x03008000 | (bar_no << 16);
 	dma.next_bda_h = (next >> 32);
 	dma.next_bda_l = next;
 
@@ -286,11 +286,13 @@ void readDMA(uint32_t *bar0, unsigned long ha, unsigned long pa, unsigned long n
 void testDMAKernelMemory(
 		uint32_t *bar0,
 		uint32_t *bar1,
+		uint64_t *bar2,
 		KernelMemory *km,
-		const unsigned long BRAM_SIZE )
+		const unsigned long test_len)
 {
 	BDA dma;
 	int err,i;
+	unsigned int bar_no = 0;
 
 	uint32_t *ptr;
 
@@ -309,68 +311,102 @@ void testDMAKernelMemory(
 	// read buffer
 	// compare buffer
 
+	if (bar1 != 0) {
+		bar_no = 0x1;
+	}
+	else if (bar2 != 0) {
+		bar_no = 0x2;
+	}
 
 	cout << "Fill buffer with zeros" << endl;
-	memset( ptr, 0, BRAM_SIZE );
+	memset( ptr, 0, test_len );
 
-		cout << "Press key to continue" << endl;
-		getchar();
-	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, BRAM_SIZE, true, true );
+	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Check
 	cout << "Checking SDRAM... (single access)\n" << flush;
-	for(err=0,i=0;i<(BRAM_SIZE >> 2);i++)
-		if ( bar1[i] != 0 ) err++;
-	if (err!=0)
-		cout << "err" << endl;
+	if (bar1 != 0) {
+		for(err=0,i=0;i<(test_len >> 2);i++)
+			if ( bar1[i] != 0 ) err++;
+		if (err!=0)
+			cout << "err" << endl;
 
-	// Print contents of the BlockRAM
-	for(i=0;i<(BRAM_SIZE >> 2);i++)
-		cout << setw(4) << hex << i*4 << ": " << setw(8) << bar1[i] << endl;
-	cout << endl;
+		// Print contents of the SDRAM
+		for(i=0;i<(test_len >> 2);i++)
+			cout << setw(4) << hex << i*4 << ": " << setw(8) << bar1[i] << endl;
+		cout << endl;
+	}
+	else if (bar2 != 0) {
+		for(err=0,i=0;i<(test_len >> 3);i++)
+			if ( bar2[i] != 0 ) err++;
+		if (err!=0)
+			cout << "err" << endl;
+
+		// Print contents of the SDRAM
+		for(i=0;i<(test_len >> 3);i++)
+			cout << setw(4) << hex << i*8 << ": " << setw(16) << bar2[i] << endl;
+		cout << endl;
+	}
 
 	// second write
 	cout << "Fill buffer with a pattern" << endl;
 	// fill with pattern
-	for(i=0;i<(BRAM_SIZE >> 2);i++) {
+	for(i=0;i<(test_len >> 2);i++) {
 		if ((i & 0x00000001) == 0)
 			ptr[i] = i;
 		else
 			ptr[i] = 0xaaaa5555;
 	}
 
-	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, BRAM_SIZE, true, true );
+	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
-	// Print contents of the SDRAM
-	cout << "Checking SDRAM (single access)" << endl;
-	for(i=0;i<(BRAM_SIZE >> 2);i++)
-		cout << setw(4) << hex << i*4 << ": " << setw(8) << bar1[i] << endl;
-	cout << endl;
+	if (bar1 != 0) {
+		// Print contents of the SDRAM
+		cout << "Checking SDRAM (single access)" << endl;
+		for(i=0;i<(test_len >> 2);i++)
+			cout << setw(4) << hex << i*4 << ": " << setw(8) << bar1[i] << endl;
+		cout << endl;
+	}
+	else if (bar2 != 0) {
+		// Print contents of the BRAM
+		cout << "Checking WB BRAM (single access)" << endl;
+		for(i=0;i<(test_len >> 3);i++)
+			cout << setw(4) << hex << i*8 << ": " << setw(16) << bar2[i] << endl;
+		cout << endl;
+	}
 
 	//**** DMA Read (up)
 	// From Device to Host. Uses DMA UP
 
 	// Clear buffer
 	cout << "Fill buffer with zeros:" << endl;
-	memset( ptr, 0x0, BRAM_SIZE );
+	memset( ptr, 0x0, test_len );
 
-	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, BRAM_SIZE, true, true );
+	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Get Buffer contents
 	cout << "Get Buffer content after DMA" << endl;
-	for(i=0;i<(BRAM_SIZE >> 2);i++)
+	for(i=0;i<(test_len >> 2);i++)
 		cout << setw(4) << hex << i*4 << ": " << setw(8) << ptr[i] << endl;
 	cout << endl << endl;
 
 	// Clear buffer
 	cout << "Clear FPGA area with zeros:" << endl;
-	memset(bar1, 0, BRAM_SIZE );
+	if (bar1 != 0) {
+		memset(bar1, 0, test_len );
+	}
+	else if (bar2 != 0) {
+	cout << "Press key to continue..." << endl;
+	getchar();
 
-	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, BRAM_SIZE, true, true );
+		memset(bar2, 0, test_len);
+	}
+
+	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Get Buffer contents
 	cout << "Get Buffer content after DMA" << endl;
-	for(i=0;i<(BRAM_SIZE >> 2);i++)
+	for(i=0;i<(test_len >> 2);i++)
 		cout << setw(4) << hex << i*4 << ": " << setw(8) << ptr[i] << endl;
 	cout << endl << endl;
 }
@@ -494,6 +530,7 @@ void testDMA(pciDriver::PciDevice *dev)
 	UserMemory *um;
 	unsigned int i, val;
 	uint32_t *bar0, *bar1;
+	uint64_t *bar2;
 
 	const unsigned long BRAM_SIZE = 0x4000;
 	uint32_t umBuf[BRAM_SIZE];
@@ -505,6 +542,7 @@ void testDMA(pciDriver::PciDevice *dev)
 		// Map BARs
 	    bar0 = static_cast<uint32_t *>( dev->mapBAR(0) );
 	    bar1 = static_cast<uint32_t *>( dev->mapBAR(1) );
+	    bar2 = static_cast<uint64_t *>( dev->mapBAR(2) );
 
 		// Create buffers
 		km = &dev->allocKernelMemory( BRAM_SIZE );
@@ -516,8 +554,12 @@ void testDMA(pciDriver::PciDevice *dev)
 		cout << "Kernel Buffer Size: " << hex << setw(8) << km->getSize() << endl;
 		cout << "BAR0 address: " << hex << setw(8) << bar0 << endl;
 		cout << "BAR1 address: " << hex << setw(8) << bar1 << endl;
+		cout << "BAR2 address: " << hex << setw(8) << bar2 << endl;
 
-		testDMAKernelMemory( bar0, bar1, km, BRAM_SIZE );
+		// Test DDR SDRAM memory
+		testDMAKernelMemory(bar0, bar1, 0, km, BRAM_SIZE);
+		// Test Wishbone endpoint (BRAM with WB interface)
+		testDMAKernelMemory(bar0, 0, bar2, km, BRAM_SIZE/16);
 //		testDMAUserMemory( bar0, bar1, um, BRAM_SIZE );
 
 		// Delete buffer descriptors
@@ -527,6 +569,7 @@ void testDMA(pciDriver::PciDevice *dev)
 		// Unmap BARs
 		dev->unmapBAR(0,bar0);
 		dev->unmapBAR(1,bar1);
+		dev->unmapBAR(2,bar1);
 
 		// Close device
 		dev->close();

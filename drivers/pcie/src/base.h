@@ -41,6 +41,7 @@ static void pcidriver_exit(void);
 DEFINE_PCI_DEVICE_TABLE(pcidriver_ids) = {
   { PCI_DEVICE( PCIE_XILINX_VENDOR_ID, PCIE_ML605_DEVICE_ID ) },  // PCI-E Xilinx ML605
   { PCI_DEVICE(PCIE_XILINX_VENDOR_ID, PCIE_KC705_DEV_ID)}, // PCIe Xilinx KC705
+  { PCI_DEVICE(PCIE_XILINX_VENDOR_ID, PCIE_AMC_DEV_ID)}, // PCIe Creotech AMC
   {0,0,0,0},
 };
 

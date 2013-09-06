@@ -316,6 +316,12 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
                 /* It is a PCI-E Xilinx ML605 evaluation board */
 		mod_info("Found ML605 board at %s\n", dev_name(&pdev->dev));
 	}
+	else if ((id->vendor == PCIE_XILINX_VENDOR_ID) &&
+		(id->device == PCIE_AMC_DEV_ID))
+	{
+                /* It is a PCI-E Creotech uTCA AMC board */
+		mod_info("Found uTCA AMC board at %s\n", dev_name(&pdev->dev));
+	}
 	else
 	{
 		/* It is something else */

@@ -47,7 +47,7 @@ typedef struct  {
 	volatile unsigned int *bars_kmapped[6];		/* PCI BARs mmapped in kernel space */
 
 #endif
-	
+
 	spinlock_t kmemlist_lock;			/* Spinlock to lock kmem list operations */
 	struct list_head kmem_list;			/* List of 'kmem_list_entry's associated with this device */
 	atomic_t kmem_count;				/* id for next kmem entry */
@@ -56,15 +56,19 @@ typedef struct  {
 	struct list_head umem_list;			/* List of 'umem_list_entry's associated with this device */
 	atomic_t umem_count;				/* id for next umem entry */
 
-	
+
 } pcidriver_privdata_t;
 
-/* Identifies the PCI-E Xilinx ML605 */
 #define PCIE_XILINX_VENDOR_ID 0x10ee
+
+/* Identifies the PCI-E Xilinx ML605 */
 #define PCIE_ML605_DEVICE_ID 0x6014
 
 /* Identfifies the PCIe Xilinx KC705 */
 #define PCIE_KC705_DEV_ID 0x7021
+
+/* Identfifies the PCIe Xilinx Artix AMC board */
+#define PCIE_AMC_DEV_ID 0x7014
 
 /*************************************************************************/
 /* Some nice defines that make code more readable */
@@ -81,7 +85,7 @@ typedef struct  {
  #define mod_info( args... ) \
     do { printk( KERN_INFO "%s: ", MODNAME );\
     printk( args ); } while(0)
- #define mod_info_dbg( args... ) 
+ #define mod_info_dbg( args... )
 #endif
 
 #define mod_crit( args... ) \

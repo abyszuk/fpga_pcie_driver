@@ -335,12 +335,26 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     /* Set bus master */
     pci_set_master(pdev);
 
+    err = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
+    if (!err) {
+        err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+    }
+    if (err) {
+        err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+    }
+    if (!err) {
+        err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+    }
+    if (err) {
+        dev_err(&pdev->dev, "No suitable DMA available");
+        goto probe_disable_device;
+    }
 	/* Get / Increment the device id */
 	devid = atomic_inc_return(&pcidriver_deviceCount) - 1;
 	if (devid >= MAXDEVICES) {
 		mod_info("Maximum number of devices reached! Increase MAXDEVICES.\n");
 		err = -ENOMSG;
-		goto probe_maxdevices_fail;
+		goto probe_disable_device;
 	}
 
 	/* Allocate and initialize the private data for this device */
@@ -416,7 +430,7 @@ probe_irq_probe_fail:
 	kfree(privdata);
 probe_nomem:
 	atomic_dec(&pcidriver_deviceCount);
-probe_maxdevices_fail:
+probe_disable_device:
 	pci_disable_device(pdev);
 probe_pcien_fail:
  	return err;

@@ -307,8 +307,6 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		(id->device == PCIE_KC705_DEV_ID))
 	{
 		mod_info( "Found KC705 at %s\n", dev_name(&pdev->dev));
-		/* Set bus master */
-		pci_set_master(pdev);
 	}
 	else if ((id->vendor == PCIE_XILINX_VENDOR_ID) &&
 		(id->device == PCIE_ML605_DEVICE_ID))
@@ -334,9 +332,8 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		goto probe_pcien_fail;
 	}
 
-	/* Set Memory-Write-Invalidate support */
-	if ((err = pci_set_mwi(pdev)) != 0)
-		mod_info("MWI not supported. Continue without enabling MWI.\n");
+    /* Set bus master */
+    pci_set_master(pdev);
 
 	/* Get / Increment the device id */
 	devid = atomic_inc_return(&pcidriver_deviceCount) - 1;

@@ -335,14 +335,8 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     /* Set bus master */
     pci_set_master(pdev);
 
-    err = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
-    if (!err) {
-        err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
-    }
+    err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
     if (err) {
-        err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-    }
-    if (!err) {
         err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
     }
     if (err) {

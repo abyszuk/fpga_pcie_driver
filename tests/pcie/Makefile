@@ -38,7 +38,8 @@ CXXFLAGS += $(addprefix -I,i $(INCDIR))
 BINARIES = testCppInterface \
 	testDMA \
 	testPciDriver \
-	testCinterface
+	testCinterface \
+	benchmarkDevice
 
 ###############################################################
 # Target definitions

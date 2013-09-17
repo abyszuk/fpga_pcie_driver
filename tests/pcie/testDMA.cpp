@@ -86,8 +86,8 @@ public:
 	inline void wait_finish(volatile uint32_t *base) {
 		//check for END bit
 		do {
-			control = base[8];
-		} while(!(control & 0x1));
+			status = base[8];
+		} while(!(status & 0x1));
 	}
 };
 

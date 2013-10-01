@@ -47,6 +47,8 @@ using namespace std;
 #define UBUF_SIZE (4096)
 
 #define REG_SDRAM_PG 0x1C
+#define REG_GSR 0x20
+#define GSR_BIT_DDR_RDY (0x1 << 7)
 #define REG_WB_PG 0x24
 
 void testDevice( int i );
@@ -361,7 +363,8 @@ void testDMAKernelMemory(
 	uint32_t *ptr;
 
 	ptr = static_cast<uint32_t *>( km->getBuffer() );
-	cout << "Kernel Buffer User address: " << hex << setw(8) << ptr << endl;
+	cout << "Kernel Buffer User address: " << hex << setw(16) << ptr << endl;
+	cout << "Kernel Buffer PCI address: " << hex << setw(16) << km->getPhysicalAddress() << endl;
 
 	//**** DMA Write (down)
 
@@ -622,8 +625,13 @@ void testDMA(pciDriver::PciDevice *dev)
 		cout << "BAR2 address: " << hex << setw(8) << bar2 << endl;
 		cout << "BAR4 address: " << hex << setw(8) << bar4 << endl;
 
-		// Test DDR SDRAM memory
-		testDMAKernelMemory(bar0, bar2, 0, km, BRAM_SIZE);
+		if (bar0[REG_GSR >> 2] & GSR_BIT_DDR_RDY) {
+			// Test DDR SDRAM memory
+			testDMAKernelMemory(bar0, bar2, 0, km, BRAM_SIZE);
+		}
+		else {
+			std::cout << "\nDDR memory not functional, skipping DMA tests for it" << std::endl;
+		}
 		// Test Wishbone endpoint (BRAM with WB interface)
 		testDMAKernelMemory(bar0, 0, bar4, km, BRAM_SIZE/16);
 //		testDMAUserMemory( bar0, bar2, um, BRAM_SIZE );

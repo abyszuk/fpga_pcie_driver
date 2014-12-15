@@ -2,7 +2,7 @@
 #define PD_PCIDEVICE_H_
 
 /********************************************************************
- * 
+ *
  * October 10th, 2006
  * Guillermo Marcus - Universitaet Mannheim
  * 
@@ -31,6 +31,7 @@
  *******************************************************************/
 
 #include <pthread.h>
+#include "Pcidefs.h"
 
 namespace pciDriver {
 
@@ -47,7 +48,7 @@ private:
 protected:
 	int handle;
 	int device;
-	char name[50];
+	char name[PCIDEV_NAME_MAX];
 	pthread_mutex_t mmap_mutex;
 public:
 	PciDevice(int number);

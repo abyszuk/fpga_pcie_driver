@@ -68,7 +68,7 @@ typedef struct {
 #define	PD_DIR_TODEVICE			1
 #define PD_DIR_FROMDEVICE		2
 
-int pd_open( int dev, pd_device_t *pci_handle );
+int pd_open( int dev, pd_device_t *pci_handle, char *dev_entry  );
 int pd_close( pd_device_t *pci_handle );
 
 /* Kernel Memory Functions */

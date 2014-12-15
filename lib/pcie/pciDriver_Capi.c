@@ -59,7 +59,7 @@ int pd_getpagemask() {
 	return pagemask;
 }
 
-int pd_open( int dev, pd_device_t *pci_handle )
+int pd_open( int dev, pd_device_t *pci_handle, char *dev_entry )
 {
 	int ret;
 
@@ -68,17 +68,23 @@ int pd_open( int dev, pd_device_t *pci_handle )
 		return -1;
 
 	pci_handle->device = dev;
-	sprintf( pci_handle->name, "/dev/fpga%d", dev );
 
-	ret = open( pci_handle->name, O_RDWR );
-	if (ret < 0)
-		return -1;
+    if ( dev_entry ) {
+        snprintf( pci_handle->name, sizeof( pci_handle->name ), dev_entry );
+    }
+    else {
+        snprintf( pci_handle->name, sizeof( pci_handle->name ), "/dev/fpga%d", dev );
+    }
 
-	pci_handle->handle = ret;
+    ret = open( pci_handle->name, O_RDWR );
+    if (ret < 0)
+        return -1;
 
-	pthread_mutex_init( &pci_handle->mmap_mutex, NULL );
+    pci_handle->handle = ret;
 
-	return 0;
+    pthread_mutex_init( &pci_handle->mmap_mutex, NULL );
+
+    return 0;
 }
 
 int pd_close(pd_device_t *pci_handle)

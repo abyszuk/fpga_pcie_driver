@@ -3,7 +3,7 @@
 /*******************************/
 
 /* Debug messages */
-#define DEBUG
+/*#define DEBUG*/
 
 /* Enable/disable IRQ handling */
 #define ENABLE_IRQ
@@ -20,4 +20,4 @@
 #define NODENAMEFMT "fpga%d"
 
 /* Maximum number of devices*/
-#define MAXDEVICES 4
+#define MAXDEVICES 12

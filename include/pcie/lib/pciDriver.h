@@ -21,6 +21,7 @@
  *******************************************************************/
 
 #include <pthread.h>
+#include "Pcidefs.h"
 
 /* Both APIs are in a single header */
 
@@ -35,7 +36,7 @@ extern "C" {
 typedef struct {
 	int handle;					/* PCI device handle */
 	int device;					/* Device ID number */
-	char name[50];				/* Device Name (node) used */
+	char name[PCIDEV_NAME_MAX];	/* Device Name (node) used */
 	pthread_mutex_t mmap_mutex;	/* Mmap mutex used by the device */
 } pd_device_t;
 
@@ -67,7 +68,7 @@ typedef struct {
 #define	PD_DIR_TODEVICE			1
 #define PD_DIR_FROMDEVICE		2
 
-int pd_open( int dev, pd_device_t *pci_handle );
+int pd_open( int dev, pd_device_t *pci_handle, char *dev_entry  );
 int pd_close( pd_device_t *pci_handle );
 
 /* Kernel Memory Functions */

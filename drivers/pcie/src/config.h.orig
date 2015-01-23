@@ -19,5 +19,10 @@
 #define NODENAME "fpga"
 #define NODENAMEFMT "fpga%d"
 
+<<<<<<< HEAD
 /* Maximum number of devices*/
+=======
+/* Maximum number of devices. This is the default maximum
+ * number of boards per microTCA.4 crate */
+>>>>>>> devel-luc
 #define MAXDEVICES 12

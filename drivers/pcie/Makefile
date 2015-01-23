@@ -2,12 +2,12 @@
 # Main Makefile for the pciDriver
 
 #helpful in case of buildroot crosscompiling
-ROOTDIR := 
+ROOTDIR :=
 CURDIR := $(shell pwd)
 
 export SRCDIR := $(CURDIR)/src
 
-default:
+all:
 	$(Q)$(MAKE) -C $(SRCDIR)
 
 install:
@@ -15,7 +15,7 @@ install:
 	@echo "INSTALL 60-udev_fpga.rules"
 	-$(Q)install -m 644 etc/udev/rules.d/60-udev_fpga.rules $(ROOTDIR)/etc/udev/rules.d/
 
-uninstall: 
+uninstall:
 	$(Q)$(MAKE) -C $(SRCDIR) uninstall
 	@echo "UNINSTALL 60-udev_fpga.rules"
 	-$(Q)rm -f $(ROOTDIR)/etc/udev/rules.d/60-udev_fpga.rules

@@ -20,20 +20,30 @@ all: kernel_driver lib_driver
 
 kernel_driver:
 	$(MAKE) -C $(DRIVER_DIR) all
-#	$(MAKE) -C $(DRIVER_DIR) install
+
+kernel_driver_clean:
+	$(MAKE) -C $(DRIVER_DIR) clean
+
+kernel_driver_install:
+	$(MAKE) -C $(DRIVER_DIR) install
+
+kernel_driver_uninstall:
+	$(MAKE) -C $(DRIVER_DIR) uninstall
 
 lib_driver:
 	$(MAKE) -C $(LIB_DIR) all
-#	$(MAKE) -C $(LIB_DIR) install
 
-clean:
-	$(MAKE) -C $(DRIVER_DIR) clean
+lib_driver_clean:
 	$(MAKE) -C $(LIB_DIR) clean
 
-install:
-	$(MAKE) -C $(DRIVER_DIR) install
+lib_driver_install:
 	$(MAKE) -C $(LIB_DIR) install
 
-uninstall:
-	$(MAKE) -C $(DRIVER_DIR) uninstall
+lib_driver_uninstall:
 	$(MAKE) -C $(LIB_DIR) uninstall
+
+clean: kernel_driver_clean lib_driver_clean
+
+install: kernel_driver_install lib_driver_install
+
+uninstall: kernel_driver_uninstall lib_driver_uninstall

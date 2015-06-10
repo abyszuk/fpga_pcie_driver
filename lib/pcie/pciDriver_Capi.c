@@ -59,7 +59,7 @@ int pd_getpagemask() {
 	return pagemask;
 }
 
-int pd_open( int dev, pd_device_t *pci_handle, char *dev_entry )
+int pd_open( int dev, pd_device_t *pci_handle, const char *dev_entry )
 {
 	int ret;
 

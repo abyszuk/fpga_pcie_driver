@@ -3,8 +3,8 @@
 CC = gcc
 CXX = g++
 
-CFLAGS += -O2 -g -fPIC
-CXXFLAGS += -O2 -g -fPIC
+override CFLAGS += -O2 -g -fPIC
+override CXXFLAGS += -O2 -g -fPIC
 
 # Source files in this directory
 SRC = $(wildcard *.cpp)
@@ -19,11 +19,14 @@ LIBSTATIC ?= libpcidriver.a
 
 INCDIR =../../include/pcie
 INCDIR +=../../include/pcie/lib
+INCDIR +=../../include/pcie/driver
 INC = $(INCDIR)/%.h
 
 LDINC += -L $(realpath .)
-CFLAGS += $(addprefix -I, $(INCDIR))
-CXXFLAGS += $(addprefix -I,i $(INCDIR))
+override CFLAGS += $(addprefix -I, $(INCDIR))
+override CXXFLAGS += $(addprefix -I,i $(INCDIR))
+
+PREFIX ?= /usr
 
 ###############################################################
 # Target definitions
@@ -55,21 +58,21 @@ $(LIBSTATIC): $(OBJ)
 
 install:
 	@echo "INSTALL libpcidriver.so"
-	-$(Q)install -m 755 $(LIB) /usr/lib/
+	-$(Q)install -m 755 $(LIB) $(PREFIX)/lib/
 	@echo "INSTALL libpcidriver.a"
-	-$(Q)install -m 755 $(LIBSTATIC) /usr/lib/
-	@echo "INSTALL /usr/include/pciDriver/lib"
-	-$(Q)mkdir -p /usr/include/pciDriver/lib
-	-$(Q)install -D -m 644 ../../include/pcie/lib/*.h /usr/include/pciDriver/lib
+	-$(Q)install -m 755 $(LIBSTATIC) $(PREFIX)/lib/
+	@echo "INSTALL $(PREFIX)/include/pciDriver/lib"
+	-$(Q)mkdir -p $(PREFIX)/include/pciDriver/lib
+	-$(Q)install -D -m 644 ../../include/pcie/lib/*.h $(PREFIX)/include/pciDriver/lib
 
 uninstall:
 	@echo "UNINSTALL libpcidriver.so"
-	-$(Q)rm -f /usr/lib/libpcidriver.so 
+	-$(Q)rm -f $(PREFIX)/lib/libpcidriver.so
 	@echo "UNINSTALL libpcidriver.a"
-	-$(Q)rm -f /usr/lib/libpcidriver.a
-	@echo "UNINSTALL /usr/include/pciDriver/lib"
-	-$(Q)rm -rf /usr/include/pciDriver/lib
-	-$(Q)rmdir /usr/include/pciDriver
+	-$(Q)rm -f $(PREFIX)/lib/libpcidriver.a
+	@echo "UNINSTALL $(PREFIX)/include/pciDriver/lib"
+	-$(Q)rm -rf $(PREFIX)/include/pciDriver/lib
+	-$(Q)rmdir $(PREFIX)/include/pciDriver
 
 clean:
 	@echo -e "CLEAN \t$(shell pwd)"

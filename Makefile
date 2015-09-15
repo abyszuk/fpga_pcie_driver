@@ -14,6 +14,8 @@ MAKE =          make
 DRIVER_DIR = drivers/pcie
 LIB_DIR = lib/pcie
 
+PREFIX ?= /usr
+
 all: kernel_driver lib_driver
 
 .PHONY: kernel_driver lib_driver install uninstall clean
@@ -25,10 +27,10 @@ kernel_driver_clean:
 	$(MAKE) -C $(DRIVER_DIR) clean
 
 kernel_driver_install:
-	$(MAKE) -C $(DRIVER_DIR) install
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) install
 
 kernel_driver_uninstall:
-	$(MAKE) -C $(DRIVER_DIR) uninstall
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) uninstall
 
 lib_driver:
 	$(MAKE) -C $(LIB_DIR) all
@@ -37,10 +39,10 @@ lib_driver_clean:
 	$(MAKE) -C $(LIB_DIR) clean
 
 lib_driver_install:
-	$(MAKE) -C $(LIB_DIR) install
+	$(MAKE) -C $(LIB_DIR) PREFIX=$(PREFIX) install
 
 lib_driver_uninstall:
-	$(MAKE) -C $(LIB_DIR) uninstall
+	$(MAKE) -C $(LIB_DIR) PREFIX=$(PREFIX) uninstall
 
 clean: kernel_driver_clean lib_driver_clean
 

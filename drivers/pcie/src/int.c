@@ -163,7 +163,7 @@ int pcidriver_probe_irq(pcidriver_privdata_t *privdata)
 	}
 
 	/* register interrupt handler */
-	if ((err = request_irq(privdata->pdev->irq, pcidriver_irq_handler, MODNAME, privdata)) != 0) {
+	if ((err = request_irq(privdata->pdev->irq, pcidriver_irq_handler, IRQF_SHARED, MODNAME, privdata)) != 0) {
 		mod_info("Error registering the interrupt handler. Disabling interrupts for this device\n");
 		return 0;
 	}
@@ -288,7 +288,7 @@ static bool pcidriver_irq_acknowledge(pcidriver_privdata_t *privdata)
  * @see pcidriver_irq_acknowledge
  *
  */
-IRQ_HANDLER_FUNC(pcidriver_irq_handler)
+irqreturn_t pcidriver_irq_handler(int irq, void *dev_id)
 {
 	pcidriver_privdata_t *privdata = (pcidriver_privdata_t *)dev_id;
 

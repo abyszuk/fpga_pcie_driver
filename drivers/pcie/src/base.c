@@ -138,8 +138,8 @@
 #error "No LINUX_VERSION_CODE macro! Stopping."
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,8)
-#error "This driver has been tested only for Kernel 2.6.8 or above."
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
+#error "This driver has been tested only for Kernel 2.6.24 or above."
 #endif
 
 /* Required includes */
@@ -210,7 +210,7 @@ MODULE_DESCRIPTION("BPM PCIe board driver");
 MODULE_LICENSE("GPL v2");
 
 /* Module class */
-static struct class_compat *pcidriver_class;
+static struct class *pcidriver_class;
 
 /**
  *
@@ -379,8 +379,8 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	privdata->devno = devno;
 	if (pcidriver_class != NULL) {
 		/* FIXME: some error checking missing here */
-		privdata->class_dev = class_device_create(pcidriver_class, NULL, devno, &(pdev->dev), NODENAMEFMT, MINOR(pcidriver_devt) + devid, privdata);
-		class_set_devdata( privdata->class_dev, privdata );
+		privdata->class_dev = device_create_compat(pcidriver_class, NULL, devno, &(pdev->dev), NODENAMEFMT, MINOR(pcidriver_devt) + devid, privdata);
+		dev_set_drvdata( privdata->class_dev, privdata );
 		mod_info("Device /dev/%s%d added\n",NODENAME,MINOR(pcidriver_devt) + devid);
 	}
 
@@ -391,7 +391,7 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	/* Populate sysfs attributes for the class device */
 	/* TODO: correct errorhandling. ewww. must remove the files in reversed order :-( */
 	#define sysfs_attr(name) do { \
-			if (class_device_create_file(sysfs_attr_def_pointer, &sysfs_attr_def_name(name)) != 0) \
+			if (device_create_file(privdata->class_dev, &sysfs_attr_def_name(name)) != 0) \
 				goto probe_device_create_fail; \
 			} while (0)
 	#ifdef ENABLE_IRQ
@@ -450,7 +450,7 @@ static void pcidriver_remove(struct pci_dev *pdev)
 
 	/* Removing sysfs attributes from class device */
 	#define sysfs_attr(name) do { \
-			class_device_remove_file(sysfs_attr_def_pointer, &sysfs_attr_def_name(name)); \
+			device_remove_file(privdata->class_dev, &sysfs_attr_def_name(name)); \
 			} while (0)
 	#ifdef ENABLE_IRQ
 	sysfs_attr(irq_count);
@@ -478,7 +478,7 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	cdev_del(&(privdata->cdev));
 
 	/* Removing the device from sysfs */
-	class_device_destroy(pcidriver_class, privdata->devno);
+	device_destroy(pcidriver_class, privdata->devno);
 
 	/* Releasing privdata */
 	kfree(privdata);
@@ -627,10 +627,10 @@ int pcidriver_mmap_pci(pcidriver_privdata_t *privdata, struct vm_area_struct *vm
 #endif
 
 		/* Map the BAR */
-		ret = io_remap_pfn_range_compat(
+		ret = io_remap_pfn_range(
 					vmap,
 					vmap->vm_start,
-					bar_addr,
+					(bar_addr >> PAGE_SHIFT),
 					bar_length,
 					vmap->vm_page_prot);
 	} else {
@@ -650,10 +650,10 @@ int pcidriver_mmap_pci(pcidriver_privdata_t *privdata, struct vm_area_struct *vm
 #endif
 
 		/* Map the BAR */
-		ret = remap_pfn_range_compat(
+		ret = remap_pfn_range(
 					vmap,
 					vmap->vm_start,
-					bar_addr,
+					(bar_addr >> PAGE_SHIFT),
 					bar_length,
 					vmap->vm_page_prot);
 	}

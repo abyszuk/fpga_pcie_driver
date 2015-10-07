@@ -12,7 +12,7 @@ typedef struct {
 	dma_addr_t dma_handle;
 	unsigned long cpua;
 	unsigned long size;
-	struct class_device_attribute sysfs_attr;	/* initialized when adding the entry */
+	struct device_attribute sysfs_attr;	/* initialized when adding the entry */
 } pcidriver_kmem_entry_t;
 
 /* Define an entry in the umem list (this list is per device) */
@@ -24,14 +24,14 @@ typedef struct {
 	struct page **pages;		/* list of pointers to the pages */
 	unsigned int nents;			/* actual entries in the scatter/gatter list (NOT nents for the map function, but the result) */
 	struct scatterlist *sg;		/* list of sg entries */
-	struct class_device_attribute sysfs_attr;	/* initialized when adding the entry */
+	struct device_attribute sysfs_attr;	/* initialized when adding the entry */
 } pcidriver_umem_entry_t;
 
 /* Hold the driver private data */
 typedef struct  {
 	dev_t devno;						/* device number (major and minor) */
 	struct pci_dev *pdev;				/* PCI device */
-	struct class_device *class_dev;		/* Class device */
+	struct device *class_dev;			/* Class device */
 	struct cdev cdev;					/* char device struct */
 	int mmap_mode;						/* current mmap mode */
 	int mmap_area;						/* current PCI mmap area */

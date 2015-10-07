@@ -268,7 +268,6 @@ int pcidriver_umem_sgget(pcidriver_privdata_t *privdata, umem_sglist_t *umem_sgl
 		return -EINVAL;					/* sg has not enough entries */
 
 	/* Copy the SG list to the user format */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
 	if (umem_sglist->type == PCIDRIVER_SG_MERGED) {
 		for_each_sg(umem_entry->sg, sg, umem_entry->nents, i ) {
 			if (i==0) {
@@ -312,54 +311,6 @@ int pcidriver_umem_sgget(pcidriver_privdata_t *privdata, umem_sglist_t *umem_sgl
 		else
 			umem_sglist->nents = umem_entry->nents;
 	}
-#else
-	if (umem_sglist->type == PCIDRIVER_SG_MERGED) {
-		/* Merge entries that are contiguous into a single entry */
-		/* Non-optimal but fast for most cases */
-		/* First one always true */
-		sg=umem_entry->sg;
-		umem_sglist->sg[0].addr = sg_dma_address( sg );
-		umem_sglist->sg[0].size = sg_dma_len( sg );
-		sg++;
-		idx = 0;
-
-		/* Iterate over the SG entries */
-		for(i=1; i< umem_entry->nents; i++, sg++ ) {
-			cur_addr = sg_dma_address( sg );
-			cur_size = sg_dma_len( sg );
-
-			/* Check if entry fits after current entry */
-			if (cur_addr == (umem_sglist->sg[idx].addr + umem_sglist->sg[idx].size)) {
-				umem_sglist->sg[idx].size += cur_size;
-				continue;
-			}
-
-			/* Skip if the entry is zero-length (yes, it can happen.... at the end of the list) */
-			if (cur_size == 0)
-				continue;
-
-			/* None of the above, add new entry */
-			idx++;
-			umem_sglist->sg[idx].addr = cur_addr;
-			umem_sglist->sg[idx].size = cur_size;
-		}
-		/* Set the used size of the SG list */
-		umem_sglist->nents = idx+1;
-	} else {
-		/* Assume pci_map_sg made a good job (ehem..) and just copy it.
-		 * actually, now I assume it just gives them plainly to me. */
-		for(i=0, sg=umem_entry->sg ; i< umem_entry->nents; i++, sg++ ) {
-			umem_sglist->sg[i].addr = sg_dma_address( sg );
-			umem_sglist->sg[i].size = sg_dma_len( sg );
-		}
-		/* Set the used size of the SG list */
-		/* Check if the last one is zero-length */
-		if ( umem_sglist->sg[ umem_entry->nents - 1].size == 0)
-			umem_sglist->nents = umem_entry->nents -1;
-		else
-			umem_sglist->nents = umem_entry->nents;
-	}
-#endif
 
 	return 0;
 }
@@ -378,7 +329,6 @@ int pcidriver_umem_sync( pcidriver_privdata_t *privdata, umem_handle_t *umem_han
 	if (umem_entry == NULL)
 		return -EINVAL;					/* umem_handle is not valid */
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,11)
 	switch (umem_handle->dir) {
 		case PCIDRIVER_DMA_TODEVICE:
 			pci_dma_sync_sg_for_device( privdata->pdev, umem_entry->sg, umem_entry->nents, PCI_DMA_TODEVICE );
@@ -393,21 +343,6 @@ int pcidriver_umem_sync( pcidriver_privdata_t *privdata, umem_handle_t *umem_han
 		default:
 			return -EINVAL;				/* wrong direction parameter */
 	}
-#else
-	switch (umem_handle->dir) {
-		case PCIDRIVER_DMA_TODEVICE:
-			pci_dma_sync_sg( privdata->pdev, umem_entry->sg, umem_entry->nents, PCI_DMA_TODEVICE );
-			break;
-		case PCIDRIVER_DMA_FROMDEVICE:
-			pci_dma_sync_sg( privdata->pdev, umem_entry->sg, umem_entry->nents, PCI_DMA_FROMDEVICE );
-			break;
-		case PCIDRIVER_DMA_BIDIRECTIONAL:
-			pci_dma_sync_sg( privdata->pdev, umem_entry->sg, umem_entry->nents, PCI_DMA_BIDIRECTIONAL );
-			break;
-		default:
-			return -EINVAL;				/* wrong direction parameter */
-	}
-#endif
 
 	return 0;
 }

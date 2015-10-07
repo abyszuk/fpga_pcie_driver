@@ -65,8 +65,6 @@ int pcidriver_kmem_alloc(pcidriver_privdata_t *privdata, kmem_handle_t *kmem_han
 	kmem_entry->cpua = (unsigned long)retptr;
 	kmem_handle->pa = (unsigned long)(kmem_entry->dma_handle);
 
-	set_pages_reserved_compat(kmem_entry->cpua, kmem_entry->size);
-
 	/* Add the kmem_entry to the list of the device */
 	spin_lock( &(privdata->kmemlist_lock) );
 	list_add_tail( &(kmem_entry->list), &(privdata->kmem_list) );
@@ -128,7 +126,6 @@ int pcidriver_kmem_sync( pcidriver_privdata_t *privdata, kmem_sync_t *kmem_sync 
 	if ((kmem_entry = pcidriver_kmem_find_entry(privdata, &(kmem_sync->handle))) == NULL)
 		return -EINVAL;					/* kmem_handle is not valid */
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,11)
 	switch (kmem_sync->dir) {
 		case PCIDRIVER_DMA_TODEVICE:
 			pci_dma_sync_single_for_device( privdata->pdev, kmem_entry->dma_handle, kmem_entry->size, PCI_DMA_TODEVICE );
@@ -143,21 +140,6 @@ int pcidriver_kmem_sync( pcidriver_privdata_t *privdata, kmem_sync_t *kmem_sync 
 		default:
 			return -EINVAL;				/* wrong direction parameter */
 	}
-#else
-	switch (kmem_sync->dir) {
-		case PCIDRIVER_DMA_TODEVICE:
-			pci_dma_sync_single( privdata->pdev, kmem_entry->dma_handle, kmem_entry->size, PCI_DMA_TODEVICE );
-			break;
-		case PCIDRIVER_DMA_FROMDEVICE:
-			pci_dma_sync_single( privdata->pdev, kmem_entry->dma_handle, kmem_entry->size, PCI_DMA_FROMDEVICE );
-			break;
-		case PCIDRIVER_DMA_BIDIRECTIONAL:
-			pci_dma_sync_single( privdata->pdev, kmem_entry->dma_handle, kmem_entry->size, PCI_DMA_BIDIRECTIONAL );
-			break;
-		default:
-			return -EINVAL;				/* wrong direction parameter */
-	}
-#endif
 
 	return 0;	/* success */
 }
@@ -170,35 +152,6 @@ int pcidriver_kmem_sync( pcidriver_privdata_t *privdata, kmem_sync_t *kmem_sync 
 int pcidriver_kmem_free_entry(pcidriver_privdata_t *privdata, pcidriver_kmem_entry_t *kmem_entry)
 {
 	pcidriver_sysfs_remove(privdata, &(kmem_entry->sysfs_attr));
-
-	/* Go over the pages of the kmem buffer, and mark them as not reserved */
-#if 0
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
-	/*
-	 * This code is DISABLED.
-	 * Apparently, it is not needed to unreserve them. Doing so here
-	 * hangs the machine. Why?
-	 *
-	 * Uhm.. see links:
-	 *
-	 * http://lwn.net/Articles/161204/
-	 * http://lists.openfabrics.org/pipermail/general/2007-March/034101.html
-	 *
-	 * I insist, this should be enabled, but doing so hangs the machine.
-	 * Literature supports the point, and there is even a similar problem (see link)
-	 * But this is not the case. It seems right to me. but obviously is not.
-	 *
-	 * Anyway, this goes away in kernel >=2.6.15.
-	 */
-	unsigned long start = __pa(kmem_entry->cpua) >> PAGE_SHIFT;
-	unsigned long end = __pa(kmem_entry->cpua + kmem_entry->size) >> PAGE_SHIFT;
-	unsigned long i;
-	for(i=start;i<end;i++) {
-		struct page *kpage = pfn_to_page(i);
-		ClearPageReserved(kpage);
-	}
-#endif
-#endif
 
 	/* Release DMA memory */
 	pci_free_consistent( privdata->pdev, kmem_entry->size, (void *)(kmem_entry->cpua), kmem_entry->dma_handle );
@@ -309,10 +262,10 @@ int pcidriver_mmap_kmem(pcidriver_privdata_t *privdata, struct vm_area_struct *v
 			(long unsigned int)virt_to_phys((void*)kmem_entry->cpua),
 			page_to_pfn(virt_to_page((void*)kmem_entry->cpua)));
 
-	ret = remap_pfn_range_cpua_compat(
+	ret = remap_pfn_range(
 					vma,
 					vma->vm_start,
-					kmem_entry->cpua,
+					page_to_pfn(virt_to_page((void*)kmem_entry->cpua)),
 					kmem_entry->size,
 					vma->vm_page_prot );
 

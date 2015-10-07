@@ -1,8 +1,8 @@
 #ifndef _PCIDRIVER_SYSFS_H
 #define _PCIDRIVER_SYSFS_H
-int pcidriver_sysfs_initialize_kmem(pcidriver_privdata_t *privdata, int id, struct class_device_attribute *sysfs_attr);
-int pcidriver_sysfs_initialize_umem(pcidriver_privdata_t *privdata, int id, struct class_device_attribute *sysfs_attr);
-void pcidriver_sysfs_remove(pcidriver_privdata_t *privdata, struct class_device_attribute *sysfs_attr);
+int pcidriver_sysfs_initialize_kmem(pcidriver_privdata_t *privdata, int id, struct device_attribute *sysfs_attr);
+int pcidriver_sysfs_initialize_umem(pcidriver_privdata_t *privdata, int id, struct device_attribute *sysfs_attr);
+void pcidriver_sysfs_remove(pcidriver_privdata_t *privdata, struct device_attribute *sysfs_attr);
 
 #ifdef ENABLE_IRQ
 SYSFS_GET_FUNCTION(pcidriver_show_irq_count);

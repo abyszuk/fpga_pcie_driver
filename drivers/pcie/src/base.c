@@ -317,13 +317,13 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	else if ((id->vendor == PCIE_XILINX_VENDOR_ID) &&
 		(id->device == PCIE_ML605_DEVICE_ID))
 	{
-                /* It is a PCI-E Xilinx ML605 evaluation board */
+	/* It is a PCI-E Xilinx ML605 evaluation board */
 		mod_info("Found ML605 board at %s\n", dev_name(&pdev->dev));
 	}
 	else if ((id->vendor == PCIE_XILINX_VENDOR_ID) &&
 		(id->device == PCIE_AMC_DEV_ID))
 	{
-                /* It is a PCI-E Creotech uTCA AMC board */
+	/* It is a PCI-E Creotech uTCA AMC board */
 		mod_info("Found uTCA AMC board at %s\n", dev_name(&pdev->dev));
 	}
 	else
@@ -338,17 +338,17 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		goto probe_pcien_fail;
 	}
 
-    /* Set bus master */
-    pci_set_master(pdev);
+	/* Set bus master */
+	pci_set_master(pdev);
 
-    err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
-    if (err) {
-        err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
-    }
-    if (err) {
-        dev_err(&pdev->dev, "No suitable DMA available");
-        goto probe_disable_device;
-    }
+	err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+	if (err) {
+		err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+	}
+	if (err) {
+		dev_err(&pdev->dev, "No suitable DMA available");
+		goto probe_disable_device;
+	}
 	/* Get / Increment the device id */
 	devid = atomic_inc_return(&pcidriver_deviceCount) - 1;
 	if (devid >= MAXDEVICES) {

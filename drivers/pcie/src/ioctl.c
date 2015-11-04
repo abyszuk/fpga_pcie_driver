@@ -32,6 +32,7 @@
 #include <linux/interrupt.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <linux/miscdevice.h>
 
 #include "config.h" 			/* Configuration for the driver */
 #include "compat.h" 			/* Compatibility functions/definitions */

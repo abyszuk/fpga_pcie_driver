@@ -17,6 +17,7 @@
 #include <linux/mm.h>
 #include <linux/pagemap.h>
 #include <linux/kernel.h>
+#include <linux/miscdevice.h>
 
 #include "compat.h"
 #include "config.h"
@@ -36,7 +37,7 @@ static SYSFS_GET_FUNCTION(pcidriver_show_umem_entry);
  */
 static int _pcidriver_sysfs_initialize(pcidriver_privdata_t *privdata,
 					int id,
-					struct class_device_attribute *sysfs_attr,
+					struct device_attribute *sysfs_attr,
 					const char *fmtstring,
 					SYSFS_GET_FUNCTION((*callback)))
 {
@@ -58,21 +59,21 @@ static int _pcidriver_sysfs_initialize(pcidriver_privdata_t *privdata,
 	#endif
 	sysfs_attr->show = callback;
 	sysfs_attr->store = NULL;
-			
+
 	/* name and add attribute */
-	if (class_device_create_file(privdata->class_dev, sysfs_attr) != 0)
+	if (device_create_file(privdata->mdev.this_device, sysfs_attr) != 0)
 		return -ENXIO; /* Device not configured. Not the really best choice, but hm. */
 #endif
 
 	return 0;
 }
 
-int pcidriver_sysfs_initialize_kmem(pcidriver_privdata_t *privdata, int id, struct class_device_attribute *sysfs_attr)
+int pcidriver_sysfs_initialize_kmem(pcidriver_privdata_t *privdata, int id, struct device_attribute *sysfs_attr)
 {
 	return _pcidriver_sysfs_initialize(privdata, id, sysfs_attr, "kbuf%d", pcidriver_show_kmem_entry);
 }
 
-int pcidriver_sysfs_initialize_umem(pcidriver_privdata_t *privdata, int id, struct class_device_attribute *sysfs_attr)
+int pcidriver_sysfs_initialize_umem(pcidriver_privdata_t *privdata, int id, struct device_attribute *sysfs_attr)
 {
 	return _pcidriver_sysfs_initialize(privdata, id, sysfs_attr, "umem%d", pcidriver_show_umem_entry);
 }
@@ -82,10 +83,10 @@ int pcidriver_sysfs_initialize_umem(pcidriver_privdata_t *privdata, int id, stru
  * Removes the file from sysfs and frees the allocated (kstrdup()) memory.
  *
  */
-void pcidriver_sysfs_remove(pcidriver_privdata_t *privdata, struct class_device_attribute *sysfs_attr)
+void pcidriver_sysfs_remove(pcidriver_privdata_t *privdata, struct device_attribute *sysfs_attr)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
-	class_device_remove_file(privdata->class_dev, sysfs_attr);
+	device_remove_file(privdata->mdev.this_device, sysfs_attr);
 	kfree(sysfs_attr->attr.name);
 #endif
 }

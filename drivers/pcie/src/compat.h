@@ -84,7 +84,7 @@ static inline const char *dev_name(struct device *dev) {
 	#define class_set_devdata dev_set_drvdata
 
 	#define sysfs_attr_def_name(name) dev_attr_##name
-	#define sysfs_attr_def_pointer privdata->class_dev
+	#define sysfs_attr_def_pointer privdata->mdev.this_device
 	#define SYSFS_GET_FUNCTION(name) ssize_t name(struct device *dev, struct device_attribute *attr, char *buf)
 	#define SYSFS_SET_FUNCTION(name) ssize_t name(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 	#define SYSFS_GET_PRIVDATA dev_get_drvdata(dev)

@@ -9,7 +9,7 @@
 
 /*
  * Change History:
- * 
+ *
  * $Log: not supported by cvs2svn $
  * Revision 1.7  2008-01-11 10:18:28  marcus
  * Modified interrupt mechanism. Added atomic functions and queues, to address race conditions. Removed unused interrupt code.
@@ -46,6 +46,7 @@
 #include <linux/cdev.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <linux/miscdevice.h>
 #include <stdbool.h>
 
 #include "config.h"
@@ -60,7 +61,7 @@
 
 /*
  * The ID between IRQ_SOURCE in irq_outstanding and the actual source is arbitrary.
- * Therefore, be careful when communicating with multiple implementations. 
+ * Therefore, be careful when communicating with multiple implementations.
  */
 
 /* IRQ_SOURCES */
@@ -256,7 +257,7 @@ static bool pcidriver_irq_acknowledge(pcidriver_privdata_t *privdata)
 	/* this is for ABB / wenxue DMA engine */
   /*
 	bar = privdata->bars_kmapped[0];
-	
+
 	mod_info_dbg("interrupt registers. ISR: %x, IER: %x\n", bar[ABB_INT_STAT], bar[ABB_INT_ENABLE]);
 
 	if (check_acknowlegde_channel(privdata, ABB_INT_CH0, ABB_IRQ_CH0, bar))

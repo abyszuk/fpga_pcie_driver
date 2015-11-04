@@ -16,6 +16,7 @@
 #include <linux/wait.h>
 #include <linux/mm.h>
 #include <linux/pagemap.h>
+#include <linux/miscdevice.h>
 
 #include "config.h"			/* compile-time configuration */
 #include "compat.h"			/* compatibility definitions for older linux */

@@ -18,6 +18,7 @@
 #include <linux/pagemap.h>
 #include <linux/sched.h>
 #include <linux/vmalloc.h>
+#include <linux/miscdevice.h>
 
 #include "config.h"			/* compile-time configuration */
 #include "compat.h"			/* compatibility definitions for older linux */

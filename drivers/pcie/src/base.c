@@ -158,6 +158,7 @@
 #include <linux/pagemap.h>
 #include <linux/spinlock.h>
 #include <linux/list.h>
+#include <linux/miscdevice.h>
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,16,0)
 	#include <asm/scatterlist.h>
@@ -209,9 +210,6 @@ MODULE_AUTHOR("Adrian Byszuk");
 MODULE_DESCRIPTION("BPM PCIe board driver");
 MODULE_LICENSE("GPL v2");
 
-/* Module class */
-static struct class_compat *pcidriver_class;
-
 /**
  *
  * Called when loading the driver
@@ -224,20 +222,14 @@ static int __init pcidriver_init(void)
 	/* Initialize the device count */
 	atomic_set(&pcidriver_deviceCount, 0);
 
+#if 0
 	/* Allocate character device region dynamically */
 	if ((err = alloc_chrdev_region(&pcidriver_devt, MINORNR, MAXDEVICES, NODENAME)) != 0) {
 		mod_info("Couldn't allocate chrdev region. Module not loaded.\n");
 		goto init_alloc_fail;
 	}
 	mod_info("Major %d allocated to nodename '%s'\n", MAJOR(pcidriver_devt), NODENAME);
-
-	/* Register driver class */
-	pcidriver_class = class_create(THIS_MODULE, NODENAME);
-
-	if (IS_ERR(pcidriver_class)) {
-		mod_info("No sysfs support. Module not loaded.\n");
-		goto init_class_fail;
-	}
+#endif
 
 	/* Register PCI driver. This function returns the number of devices on some
 	 * systems, therefore check for errors as < 0. */
@@ -251,10 +243,10 @@ static int __init pcidriver_init(void)
 	return 0;
 
 init_pcireg_fail:
-	class_destroy(pcidriver_class);
-init_class_fail:
+#if 0
 	unregister_chrdev_region(pcidriver_devt, MAXDEVICES);
 init_alloc_fail:
+#endif
 	return err;
 }
 
@@ -267,10 +259,9 @@ static void __exit pcidriver_exit(void)
 {
 
 	pci_unregister_driver(&pcidriver_driver);
+#if 0
 	unregister_chrdev_region(pcidriver_devt, MAXDEVICES);
-
-	if (pcidriver_class != NULL)
-		class_destroy(pcidriver_class);
+#endif
 
 	mod_info("Module unloaded\n");
 }
@@ -291,6 +282,20 @@ static struct pci_driver pcidriver_driver = {
 	.remove = pcidriver_remove,
 };
 
+/* Misc device */
+static int fpga_create_misc_device(pcidriver_privdata_t *priv)
+{
+	priv->mdev.minor = MISC_DYNAMIC_MINOR;
+	priv->mdev.fops = &pcidriver_fops;
+	priv->mdev.name = priv->name;
+	return misc_register(&priv->mdev);
+}
+
+static void fpga_destroy_misc_device(pcidriver_privdata_t *priv)
+{
+	misc_deregister(&priv->mdev);
+}
+
 /**
  *
  * This function is called when installing the driver for a device
@@ -300,9 +305,11 @@ static struct pci_driver pcidriver_driver = {
 static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	int err;
-	int devno;
 	pcidriver_privdata_t *privdata;
 	int devid;
+
+	dev_info(&pdev->dev, " probe for device %04x:%04x\n",
+		pdev->bus->number, pdev->devfn);
 
 	/* At the moment there is no difference between these boards here, other than
 	 * printing a different message in the log.
@@ -374,14 +381,14 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	pci_set_drvdata( pdev, privdata );
 	privdata->pdev = pdev;
 
+	snprintf(privdata->name, PCIE_NAME_LEN, NODENAME"-%04x",
+		privdata->pdev->bus->number << 8 | privdata->pdev->devfn);
+
 	/* Device add to sysfs */
-	devno = MKDEV(MAJOR(pcidriver_devt), MINOR(pcidriver_devt) + devid);
-	privdata->devno = devno;
-	if (pcidriver_class != NULL) {
-		/* FIXME: some error checking missing here */
-		privdata->class_dev = class_device_create(pcidriver_class, NULL, devno, &(pdev->dev), NODENAMEFMT, MINOR(pcidriver_devt) + devid, privdata);
-		class_set_devdata( privdata->class_dev, privdata );
-		mod_info("Device /dev/%s%d added\n",NODENAME,MINOR(pcidriver_devt) + devid);
+    err = fpga_create_misc_device(privdata);
+	if (err) {
+		dev_err(&privdata->pdev->dev, "Error creating misc device\n");
+		goto failed_misc;
 	}
 
 	/* Setup mmaped BARs into kernel space */
@@ -415,7 +422,8 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	privdata->cdev.owner = THIS_MODULE;
 #endif
 	privdata->cdev.ops = &pcidriver_fops;
-	err = cdev_add( &privdata->cdev, devno, 1 );
+	/* Is MKDEV(MISC_MAJOR, misc->minor) safe to do here? */
+	err = cdev_add( &privdata->cdev, MKDEV(MISC_MAJOR, privdata->mdev.minor), 1 );
 	if (err) {
 		mod_info( "Couldn't add character device.\n" );
 		goto probe_cdevadd_fail;
@@ -427,6 +435,7 @@ probe_device_create_fail:
 probe_cdevadd_fail:
 probe_irq_probe_fail:
 	pcidriver_irq_unmap_bars(privdata);
+failed_misc:
 	kfree(privdata);
 probe_nomem:
 	atomic_dec(&pcidriver_deviceCount);
@@ -478,7 +487,7 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	cdev_del(&(privdata->cdev));
 
 	/* Removing the device from sysfs */
-	class_device_destroy(pcidriver_class, privdata->devno);
+    fpga_destroy_misc_device(privdata);
 
 	/* Releasing privdata */
 	kfree(privdata);

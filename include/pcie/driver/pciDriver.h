@@ -89,6 +89,9 @@
 /* Maximum number of interrupt sources */
 #define PCIDRIVER_INT_MAXSOURCES 16
 
+/* Maximum length of the device name, for human consumption */
+#define PCIE_NAME_LEN 10
+
 /* Types */
 typedef struct {
 	unsigned long pa;

@@ -54,8 +54,8 @@ typedef struct  {
 	spinlock_t umemlist_lock;			/* Spinlock to lock umem list operations */
 	struct list_head umem_list;			/* List of 'umem_list_entry's associated with this device */
 	atomic_t umem_count;				/* id for next umem entry */
-    struct miscdevice mdev;
-    char name[ PCIE_NAME_LEN ];
+	struct miscdevice mdev;
+	char name[ PCIE_NAME_LEN ];
 
 } pcidriver_privdata_t;
 

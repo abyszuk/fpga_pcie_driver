@@ -385,7 +385,7 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		privdata->pdev->bus->number << 8 | privdata->pdev->devfn);
 
 	/* Device add to sysfs */
-    err = fpga_create_misc_device(privdata);
+	err = fpga_create_misc_device(privdata);
 	if (err) {
 		dev_err(&privdata->pdev->dev, "Error creating misc device\n");
 		goto failed_misc;
@@ -487,7 +487,7 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	cdev_del(&(privdata->cdev));
 
 	/* Removing the device from sysfs */
-    fpga_destroy_misc_device(privdata);
+	fpga_destroy_misc_device(privdata);
 
 	/* Releasing privdata */
 	kfree(privdata);

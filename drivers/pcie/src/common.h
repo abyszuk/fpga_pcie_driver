@@ -31,7 +31,6 @@ typedef struct {
 typedef struct  {
 	dev_t devno;						/* device number (major and minor) */
 	struct pci_dev *pdev;				/* PCI device */
-	struct cdev cdev;					/* char device struct */
 	int mmap_mode;						/* current mmap mode */
 	int mmap_area;						/* current PCI mmap area */
 

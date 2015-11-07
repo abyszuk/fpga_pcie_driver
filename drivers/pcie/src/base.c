@@ -152,7 +152,6 @@
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
-#include <linux/cdev.h>
 #include <linux/sysfs.h>
 #include <asm/atomic.h>
 #include <linux/pagemap.h>
@@ -416,23 +415,9 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	sysfs_attr(umem_unmap);
 	#undef sysfs_attr
 
-	/* Register character device */
-	cdev_init( &(privdata->cdev), &pcidriver_fops );
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,35)
-	privdata->cdev.owner = THIS_MODULE;
-#endif
-	privdata->cdev.ops = &pcidriver_fops;
-	/* Is MKDEV(MISC_MAJOR, misc->minor) safe to do here? */
-	err = cdev_add( &privdata->cdev, MKDEV(MISC_MAJOR, privdata->mdev.minor), 1 );
-	if (err) {
-		mod_info( "Couldn't add character device.\n" );
-		goto probe_cdevadd_fail;
-	}
-
 	return 0;
 
 probe_device_create_fail:
-probe_cdevadd_fail:
 probe_irq_probe_fail:
 	pcidriver_irq_unmap_bars(privdata);
 failed_misc:
@@ -483,9 +468,6 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	pcidriver_remove_irq(privdata);
 #endif
 
-	/* Removing Character device */
-	cdev_del(&(privdata->cdev));
-
 	/* Removing the device from sysfs */
 	fpga_destroy_misc_device(privdata);
 
@@ -529,11 +511,9 @@ static struct file_operations pcidriver_fops = {
  */
 int pcidriver_open(struct inode *inode, struct file *filp)
 {
-	pcidriver_privdata_t *privdata;
-
 	/* Set the private data area for the file */
-	privdata = container_of( inode->i_cdev, pcidriver_privdata_t, cdev);
-	filp->private_data = privdata;
+	struct miscdevice *mdev_ptr = filp->private_data;
+	filp->private_data = container_of(mdev_ptr, pcidriver_privdata_t, mdev);
 
 	return 0;
 }

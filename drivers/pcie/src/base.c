@@ -218,15 +218,6 @@ static int __init pcidriver_init(void)
 {
 	int err;
 
-#if 0
-	/* Allocate character device region dynamically */
-	if ((err = alloc_chrdev_region(&pcidriver_devt, MINORNR, MAXDEVICES, NODENAME)) != 0) {
-		mod_info("Couldn't allocate chrdev region. Module not loaded.\n");
-		goto init_alloc_fail;
-	}
-	mod_info("Major %d allocated to nodename '%s'\n", MAJOR(pcidriver_devt), NODENAME);
-#endif
-
 	/* Register PCI driver. This function returns the number of devices on some
 	 * systems, therefore check for errors as < 0. */
 	if ((err = pci_register_driver(&pcidriver_driver)) < 0) {
@@ -239,10 +230,6 @@ static int __init pcidriver_init(void)
 	return 0;
 
 init_pcireg_fail:
-#if 0
-	unregister_chrdev_region(pcidriver_devt, MAXDEVICES);
-init_alloc_fail:
-#endif
 	return err;
 }
 
@@ -255,9 +242,6 @@ static void __exit pcidriver_exit(void)
 {
 
 	pci_unregister_driver(&pcidriver_driver);
-#if 0
-	unregister_chrdev_region(pcidriver_devt, MAXDEVICES);
-#endif
 
 	mod_info("Module unloaded\n");
 }

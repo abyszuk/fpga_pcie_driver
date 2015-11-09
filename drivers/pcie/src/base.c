@@ -218,9 +218,6 @@ static int __init pcidriver_init(void)
 {
 	int err;
 
-	/* Initialize the device count */
-	atomic_set(&pcidriver_deviceCount, 0);
-
 #if 0
 	/* Allocate character device region dynamically */
 	if ((err = alloc_chrdev_region(&pcidriver_devt, MINORNR, MAXDEVICES, NODENAME)) != 0) {
@@ -305,7 +302,6 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	int err;
 	pcidriver_privdata_t *privdata;
-	int devid;
 
 	dev_info(&pdev->dev, " probe for device %04x:%04x\n",
 		pdev->bus->number, pdev->devfn);
@@ -353,13 +349,6 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	}
 	if (err) {
 		dev_err(&pdev->dev, "No suitable DMA available");
-		goto probe_disable_device;
-	}
-	/* Get / Increment the device id */
-	devid = atomic_inc_return(&pcidriver_deviceCount) - 1;
-	if (devid >= MAXDEVICES) {
-		mod_info("Maximum number of devices reached! Increase MAXDEVICES.\n");
-		err = -ENOMSG;
 		goto probe_disable_device;
 	}
 
@@ -423,7 +412,6 @@ probe_irq_probe_fail:
 failed_misc:
 	kfree(privdata);
 probe_nomem:
-	atomic_dec(&pcidriver_deviceCount);
 probe_disable_device:
 	pci_disable_device(pdev);
 probe_pcien_fail:

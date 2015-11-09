@@ -55,8 +55,6 @@ int pcidriver_mmap_kmem( pcidriver_privdata_t *privdata, struct vm_area_struct *
 
 /*************************************************************************/
 /* Static data */
-/* Hold the allocated major & minor numbers */
-static dev_t pcidriver_devt;
 
 /* Sysfs attributes */
 static DEVICE_ATTR(mmap_mode, (S_IRUGO | S_IWUSR | S_IWGRP), pcidriver_show_mmap_mode, pcidriver_store_mmap_mode);

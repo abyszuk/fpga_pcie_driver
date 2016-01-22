@@ -46,7 +46,7 @@ void testDevice( int i )
 	int ret;
 	
 	printf("Trying device %d ...", i);
-	ret = pd_open( i, &dev );
+	ret = pd_open( i, &dev, NULL );
 
 	if (ret != 0) {
 		printf("failed\n");
@@ -67,7 +67,7 @@ void testPCIconfig(pd_device_t *dev)
 {
 	int i,j,ret;
 	
-	printf(" Testing PCI config ... \n");
+	printf("### Testing PCI config ... ###\n");
 	printf("  Reading PCI config area in byte mode ... \n");
 	for(i=0;i<32;i++) {
 		printf("   %03d: ", i*8 );
@@ -105,6 +105,7 @@ void testPCImmap(pd_device_t *dev)
 	void *bar;
 	unsigned int size;
 	
+	printf("### Testing BAR MMAPing ... ###\n");
 	for(i=0;i<6;i++) {
 		printf("Mapping BAR %d ...",i);
 		bar = pd_mapBAR( dev, i );
@@ -131,6 +132,7 @@ void testKernelMemory(pd_device_t *dev)
 	void *buf;
 	unsigned int size,ret;
 	
+	printf("### Testing KMEM ###\n");
 	for(size=1024;size<=MAX_KBUF;size*=2) {
 		printf("%d: ", size );
 		
@@ -156,6 +158,7 @@ void testUserMemory(pd_device_t *dev)
 	void *mem;
 	unsigned int size,i,ret;
 	
+	printf("### Testing UMEM ... ###\n");
 	for(size=1024;size<=MAX_UBUF;size*=2) {
 		printf("%d: ", size );
 

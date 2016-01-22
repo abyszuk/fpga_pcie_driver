@@ -94,6 +94,7 @@ void testPCIconfig(pciDriver::PciDevice *dev)
 	
 	dev->open();
 	
+	cout << "### Testing PCI config ###" << endl;
 	// Config in byte mode
 	cout << " Reading Config Area in Byte mode:" << endl;
 
@@ -130,7 +131,6 @@ void testPCIconfig(pciDriver::PciDevice *dev)
 		cout << endl;
 	}
 	cout << dec;
-
 	
 	dev->close();
 }
@@ -144,6 +144,7 @@ void testPCImmap(pciDriver::PciDevice *dev)
 	
 	dev->open();
 	
+	cout << "### Testing MMAP ###" << endl;
 	for(i=0;i<6;i++) {
 		cout << "Mapping BAR " << i << " ... ";
 		try {
@@ -178,6 +179,7 @@ void testKernelMemory(pciDriver::PciDevice *dev)
 	
 	dev->open();
 	
+	cout << "### Testing KMEM ###" << endl;
 	for(size=1024;size<=MAX_KBUF;size*=2) {
 		try {
 			cout << size << ": ";
@@ -240,6 +242,7 @@ void testUserMemory(pciDriver::PciDevice *dev)
 	
 	dev->open();
 	
+	cout << "### Testing UMEM ###" << endl;
 	for(size=1024;size<=MAX_UBUF;size*=2) {
 		try {
 			cout << size << ": ";

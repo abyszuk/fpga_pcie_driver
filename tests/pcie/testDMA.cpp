@@ -87,9 +87,17 @@ public:
 
 	inline void wait_finish(volatile uint32_t *base) {
 		//check for END bit
-		do {
+		while(1) {
 			status = base[8];
-		} while(!(status & 0x1));
+			if(status & 0x1) {
+				//DMA finished properly
+				break;
+			}
+			if(status & (0x1 << 4)) {
+				cout << "DMA timeout!!!" << endl;
+				break;
+			}
+		};
 	}
 };
 
@@ -189,7 +197,7 @@ void testDirectIO(pciDriver::PciDevice *dev)
 		// Map BARs
 	    bar0 = static_cast<uint32_t *>( dev->mapBAR(0) );
 	    bar2 = static_cast<uint32_t *>( dev->mapBAR(2) );
-	    bar4 = static_cast<unsigned long int *>( dev->mapBAR(4) );
+	    bar4 = static_cast<uint64_t *>( dev->mapBAR(4) );
 
 		// Get BAR sizes
 		bar0size = dev->getBARsize(0);
@@ -198,10 +206,6 @@ void testDirectIO(pciDriver::PciDevice *dev)
 		cout << "BAR0 size: " << bar0size << endl;
 		cout << "BAR2 size: " << bar2size << endl;
 		cout << "BAR4 size: " << bar4size << endl;
-
-		// test register memory
-		bar0[0] = 0x1234565;
-		bar0[1] = 0x5aa5c66c;
 
 		cout << "\nReading registers space (single access)" << endl;
 		for(i=0;i<MAX_LEN;i++) {
@@ -219,11 +223,11 @@ void testDirectIO(pciDriver::PciDevice *dev)
 		for(i=0;i<MAX_LEN;i++) {
 			buf[i] = ~i;
 		}
-		memcpy( (void*)bar4, (void*)buf, MAX_LEN*sizeof(uint32_t) );
+		memcpy(bar4, buf, MAX_LEN*sizeof(uint32_t) );
 
 		// read block
 		cout << "\nReading block of WB BRAM space" << endl;
-		memcpy( (void*)buf, (void*)bar4, MAX_LEN*sizeof(uint32_t) );
+		memcpy(buf, bar4, MAX_LEN*sizeof(uint32_t) );
 		for(i=0;i<MAX_LEN;i++) {
 			val = buf[i];
 			cout << hex << setw(8) << val << endl;
@@ -248,6 +252,8 @@ void testPaging(pciDriver::PciDevice *dev)
 	uint32_t *bar0, *bar2;
 	unsigned int bar0size, bar2size, bar4size;
 	volatile uint32_t val;
+	unsigned int N_PAGES = 20, N_WORDS = 10;
+	uint32_t word_table[N_PAGES][N_WORDS];
 
 	try {
 		// Open device
@@ -259,25 +265,36 @@ void testPaging(pciDriver::PciDevice *dev)
 
 		srand(time(NULL));
 
-		cout << "## Testing paging on DDR SDRAM space" << endl;
-		for (int i = 0; i < 4; i++) {
+		cout << "### Testing paging on DDR SDRAM space ###" << endl;
+		cout << "# Writing to first " << N_PAGES << " pages" << endl;
+		for (int i = 0; i < N_PAGES; i++) {
 			bar0[REG_SDRAM_PG>>2] = i;
-			cout << "# Writing to page: " << i << endl;
-			for (int addr = 0; addr < 5; addr++) {
+			for (int addr = 0; addr < N_WORDS; addr++) {
 				val = rand();
-				cout << "addr = " << addr << " val = " << val << endl;
+				word_table[i][addr] = val;
 				bar2[addr] = val;
 			}
 		}
 
-		for (int i = 0; i < 4; i++) {
+		cout << "# Reading from first " << N_PAGES << " pages" << endl;
+		bool err = false;
+		for (int i = 0; i < N_PAGES; i++) {
 			bar0[REG_SDRAM_PG>>2] = i;
-			cout << "\n# Reading from page: " << i << endl;
-			for (int addr = 0; addr < 5; addr++) {
+			for (int addr = 0; addr < N_WORDS; addr++) {
 				val = bar2[addr];
-				cout << "addr = " << addr << " val = " << val << endl;
+				if (val != word_table[i][addr]) {
+					err = true;
+					cout << "Error on addr = " << addr << " rd_val = " << val \
+						<< " wr_val = " << word_table[i][addr] << endl;
+				}
 			}
 		}
+
+		if (!err) {
+			cout << "# Test passed #" << endl;
+		}
+
+		//check and print on error
 		// Unmap BARs
 		dev->unmapBAR(0,bar0);
 		dev->unmapBAR(2,bar2);
@@ -357,14 +374,16 @@ void testDMAKernelMemory(
 		const unsigned long test_len)
 {
 	BDA dma;
-	int err,i;
 	unsigned int bar_no = 0;
+	unsigned int i, err;
 
-	uint32_t *ptr;
+	uint32_t *u32_ptr;
+	uint64_t *u64_ptr;
 
-	ptr = static_cast<uint32_t *>( km->getBuffer() );
-	cout << "Kernel Buffer User address: " << hex << setw(16) << ptr << endl;
-	cout << "Kernel Buffer PCI address: " << hex << setw(16) << km->getPhysicalAddress() << endl;
+	u32_ptr = static_cast<uint32_t *>(km->getBuffer());
+	u64_ptr = static_cast<uint64_t *>(km->getBuffer());
+	cout << "Kernel Buffer User address: " << hex << setw(16) << u32_ptr << endl;
+	cout << "Kernel Buffer Physical address: " << hex << setw(16) << km->getPhysicalAddress() << endl;
 
 	//**** DMA Write (down)
 
@@ -374,96 +393,155 @@ void testDMAKernelMemory(
 
 	//**** DMA Read (up)
 
-	// fill buffer with simple IO
+	// 	simple IO
 	// read buffer
 	// compare buffer
 
 	if (bar2 != 0) {
 		bar_no = 0x2;
+		bar0[REG_SDRAM_PG>>2] = 0;
 	}
 	else if (bar4 != 0) {
 		bar_no = 0x4;
+		bar0[REG_WB_PG >> 2] = 0;
 	}
 
+	cout << "# Test DMA downstream" << endl;
 	cout << "Fill buffer with zeros" << endl;
-	memset( ptr, 0, test_len );
+	memset( u32_ptr, 0, test_len );
 
+	cout << "DMA zero'ed buffer to PCIe device" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Check
-	cout << "Checking SDRAM... (single access)\n" << flush;
+	cout << "Check PCIe memory... (PIO mode)\n" << flush;
+	cout << "Press key..." << endl; cin.ignore();
 
 	if (bar2 != 0) {
-		bar0[REG_SDRAM_PG>>2] = 0;
-
-		for(err=0,i=0;i<(test_len >> 2);i++)
-			if ( bar2[i] != 0 ) err++;
-		if (err!=0)
-			cout << "err" << endl;
-
-		// Print contents of the SDRAM
-		for(i=0;i<(test_len >> 2);i++)
-			cout << setw(4) << hex << i*4 << ": " << setw(8) << bar2[i] << endl;
-		cout << endl;
+		for(err=0,i=0;i<(test_len >> 2);i++){
+			if (bar2[i] != 0) err++;
+		}
+		if (err) {
+			cout << "Detected " << dec << err << " errors!!!" << endl;
+			cout << "Listing invalid memory cells:" << endl;
+			for(i=0;i<(test_len >> 2);i++) {
+				if (bar2[i] != 0) {
+					cout << setw(4) << hex << i*4 << ": " << setw(8) << bar2[i] << endl;
+				}
+			}
+			cout << endl;
+		}
+		else {
+			cout << "Test passed" << endl;
+		}
 	}
 	else if (bar4 != 0) {
-		bar0[REG_WB_PG >> 2] = 0;
-
-		for(err=0,i=0;i<(test_len >> 3);i++)
+		for(err=0,i=0;i<(test_len >> 3);i++) {
 			if ( bar4[i] != 0 ) err++;
-		if (err!=0)
-			cout << "err" << endl;
-
-		// Print contents of the SDRAM
-		for(i=0;i<(test_len >> 3);i++)
-			cout << setw(4) << hex << i*8 << ": " << setw(16) << bar4[i] << endl;
-		cout << endl;
+		}
+		if (err) {
+			cout << "Detected " << dec << err << " errors!!!" << endl;
+			cout << "Listing invalid memory cells:" << endl;
+			for(i=0;i<(test_len >> 3);i++) {
+				if (bar4[i] != 0) {
+					cout << setw(4) << hex << i*8 << ": " << setw(16) << bar4[i] << endl;
+				}
+			}
+			cout << endl;
+		}
+		else {
+			cout << "Test passed" << endl;
+		}
 	}
 
 	// second write
 	cout << "Fill buffer with a pattern" << endl;
 	// fill with pattern
-	for(i=0;i<(test_len >> 2);i++) {
+	for(int i=0;i<(test_len >> 2);i++) {
 		if ((i & 0x00000001) == 0)
-			ptr[i] = i;
+			u32_ptr[i] = i;
 		else
-			ptr[i] = 0xaaaa5555;
+			u32_ptr[i] = 0xaaaa5555;
 	}
 
+	//copy patterned buffer for future use
+	uint32_t *patt32_buf = new uint32_t[test_len >> 2];
+	uint64_t *patt64_buf = new uint64_t[test_len >> 3];
+	memcpy(patt32_buf, u32_ptr, test_len);
+	memcpy(patt64_buf, u32_ptr, test_len);
+
+	cout << "DMA patterned buffer to PCIe device" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	writeDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
+	cout << "Check PCIE memory (PIO mode)" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	if (bar2 != 0) {
-		// Print contents of the SDRAM
-		cout << "Checking SDRAM (single access)" << endl;
-		for(i=0;i<(test_len >> 2);i++)
-			cout << setw(4) << hex << i*4 << ": " << setw(8) << bar2[i] << endl;
+		for(err=0, i=0; i<(test_len >> 2); i++) {
+			if (bar2[i] != u32_ptr[i]) err++;
+		}
+		if (err) {
+			cout << "Detected " << dec << err << " errors!!!" << endl;
+			cout << "Listing invalid memory cells:" << endl;
+			for(i=0;i<(test_len >> 2);i++) {
+				cout << setw(4) << hex << i*4 << ": " << setw(8) << bar2[i] << endl;
+			}
+		}
+		else {
+			cout << "Test passed" << endl;
+		}
 		cout << endl;
 	}
 	else if (bar4 != 0) {
-		// Print contents of the BRAM
-		cout << "Checking WB BRAM (single access)" << endl;
-		for(i=0;i<(test_len >> 3);i++)
-			cout << setw(4) << hex << i*8 << ": " << setw(16) << bar4[i] << endl;
+		for(err=0, i=0; i<(test_len >> 3); i++) {
+			if (bar4[i] != u64_ptr[i]) err++;
+		}
+		if (err) {
+			cout << "Detected " << dec << err << " errors!!!" << endl;
+			cout << "Listing invalid memory cells:" << endl;
+			for(i=0;i<(test_len >> 3);i++) {
+				cout << setw(4) << hex << i*8 << ": " << setw(16) << bar4[i] << endl;
+			}
+		}
+		else {
+			cout << "Test passed" << endl;
+		}
 		cout << endl;
 	}
 
 	//**** DMA Read (up)
 	// From Device to Host. Uses DMA UP
 
-	// Clear buffer
-	cout << "Fill buffer with zeros:" << endl;
-	memset( ptr, 0x0, test_len );
+	cout << "# Test DMA upstream" << endl;
 
+	cout << "Fill buffer with zeros" << endl;
+	memset(u32_ptr, 0x0, test_len);
+
+	cout << "DMA previously patterned data in PCIe device to buffer" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Get Buffer contents
-	cout << "Get Buffer content after DMA" << endl;
-	for(i=0;i<(test_len >> 2);i++)
-		cout << setw(4) << hex << i*4 << ": " << setw(8) << ptr[i] << endl;
-	cout << endl << endl;
+	cout << "Check buffer content after DMA" << endl;
+	cout << "Press key..." << endl; cin.ignore();
+	for(i=0; i<(test_len >> 2); i++)
+		if (u32_ptr[i] != patt32_buf[i]) err++;
+
+	if (err) {
+		cout << "Detected " << dec << err << " errors!!!" << endl;
+		cout << "Listing invalid memory cells:" << endl;
+		for(i=0; i<(test_len >> 2); i++) {
+			cout << setw(4) << hex << i*4 << ": " << setw(8) << u32_ptr[i] << endl;
+		}
+	}
+	else {
+		cout << "Test passed" << endl;
+	}
 
 	// Clear buffer
 	cout << "Clear FPGA area with zeros:" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	if (bar2 != 0) {
 		memset(bar2, 0, test_len );
 	}
@@ -471,13 +549,25 @@ void testDMAKernelMemory(
 		memset(bar4, 0, test_len);
 	}
 
+	cout << "DMA zeros in PCIe device to buffer" << endl;
+	cout << "Press key..." << endl; cin.ignore();
 	readDMA(bar0, km->getPhysicalAddress(), 0x00000000, 0x00000000, test_len, bar_no, true );
 
 	// Get Buffer contents
-	cout << "Get Buffer content after DMA" << endl;
-	for(i=0;i<(test_len >> 2);i++)
-		cout << setw(4) << hex << i*4 << ": " << setw(8) << ptr[i] << endl;
-	cout << endl << endl;
+	cout << "Check content after DMA" << endl;
+	for(i=0; i<(test_len >> 2); i++) {
+		if (u32_ptr[i] != 0) err++;
+	}
+	if (err) {
+		cout << "Detected " << dec << err << " errors!!!" << endl;
+		cout << "Listing invalid memory cells:" << endl;
+		for(i=0;i<(test_len >> 2);i++) {
+			cout << setw(4) << hex << i*4 << ": " << setw(8) << u32_ptr[i] << endl;
+		}
+	}
+	else {
+		cout << "Test passed" << endl;
+	}
 }
 
 
@@ -617,7 +707,7 @@ void testDMA(pciDriver::PciDevice *dev)
 		km = &dev->allocKernelMemory( BRAM_SIZE );
 		um = &dev->mapUserMemory( umBuf ,BRAM_SIZE, true );
 
-		// Test Kernel Buffer
+		cout << "\n### Test Kernel Buffer DMA ###" << endl;
 
 		cout << "Kernel Buffer Physical address: " << hex << setw(16) << km->getPhysicalAddress() << endl;
 		cout << "Kernel Buffer Size: " << hex << setw(8) << km->getSize() << endl;
@@ -626,13 +716,13 @@ void testDMA(pciDriver::PciDevice *dev)
 		cout << "BAR4 address: " << hex << setw(8) << bar4 << endl;
 
 		if (bar0[REG_GSR >> 2] & GSR_BIT_DDR_RDY) {
-			// Test DDR SDRAM memory
+			cout << "## Testing DDR memory DMA" << endl;
 			testDMAKernelMemory(bar0, bar2, 0, km, BRAM_SIZE);
 		}
 		else {
-			std::cout << "\nDDR memory not functional, skipping DMA tests for it" << std::endl;
+			std::cout << "DDR memory not functional, skipping DMA tests for it" << std::endl;
 		}
-		// Test Wishbone endpoint (BRAM with WB interface)
+		cout << "\n## Testing Wishbone endpoint (BRAM with WB interface)" << endl;
 		testDMAKernelMemory(bar0, 0, bar4, km, BRAM_SIZE/16);
 //		testDMAUserMemory( bar0, bar2, um, BRAM_SIZE );
 

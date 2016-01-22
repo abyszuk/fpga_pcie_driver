@@ -5,11 +5,11 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 #include <cmath>
 #include <unistd.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <boost/timer/timer.hpp>
 
 
 class BDA {
@@ -41,9 +41,17 @@ public:
 
 	inline void wait_finish(volatile uint32_t *base) {
 		//check for END bit
-		do {
+		while(1) {
 			status = base[8];
-		} while(!(status & 0x1));
+			if(status & 0x1) {
+				//DMA finished properly
+				break;
+			}
+			if(status & (0x1 << 4)) {
+				std::cout << "DMA timeout!!!" << std::endl;
+				break;
+			}
+		};
 	}
 };
 
@@ -96,11 +104,14 @@ void testDevice(int i)
 void testDirectIO(pciDriver::PciDevice *dev,
 		size_t total_size)
 {
+	using boost::timer::cpu_timer;
+	using boost::timer::cpu_times;
+
 	uint32_t *bar2;
 	unsigned int bar2size;
-	time_t time_start;
-	time_t time_end;
-	double time_diff;
+	cpu_timer timer;
+	cpu_times times;
+	double t_diff;
 	size_t bytes_sent;
 
 	try {
@@ -117,30 +128,32 @@ void testDirectIO(pciDriver::PciDevice *dev,
 
 		//start measurement
 		std::cout << "[Write test]" << std::endl;
-		time(&time_start);
+		timer.start();
 		for(bytes_sent = 0; bytes_sent < total_size; bytes_sent += bar2size) {
 			memcpy(bar2, buf, bar2size);
 		}
-		time(&time_end);
+		timer.stop();
 
-		time_diff = difftime(time_end, time_start);;
+		times = timer.elapsed();
+		t_diff = times.wall/1000000000.0;
 		std::cout << "Write time: " << std::fixed << std::setprecision(2) <<
-			time_diff << " seconds" << std::endl;
+			format(times, 2, "%w") << " seconds" << std::endl;
 		std::cout << "Write speed: " << std::fixed <<
-			(bytes_sent/time_diff)/pow(2,20) << " [MB/s]" << std::endl;
+			(bytes_sent/t_diff)/pow(2,20) << " [MB/s]" << std::endl;
 
 		std::cout << "[Read test]" << std::endl;
-		time(&time_start);
+		timer.start();
 		for(bytes_sent = 0; bytes_sent < total_size; bytes_sent += bar2size) {
 			memcpy(buf, bar2, bar2size);
 		}
-		time(&time_end);
+		timer.stop();
 
-		time_diff = difftime(time_end, time_start);;
+		times = timer.elapsed();
+		t_diff = times.wall/1000000000.0;
 		std::cout << "Read time: " << std::fixed << std::setprecision(2) <<
-			time_diff << " seconds" << std::endl;
+			format(times, 2, "%w") << " seconds" << std::endl;
 		std::cout << "Read speed: " << std::fixed <<
-			(bytes_sent/time_diff)/pow(2,20) << " [MB/s]" << std::endl;
+			(bytes_sent/t_diff)/pow(2,20) << " [MB/s]" << std::endl;
 
 		delete[] buf;
 		dev->unmapBAR(2,bar2);
@@ -196,15 +209,18 @@ void testDMAKernelMemory(
 		const size_t buf_size,
 		const size_t test_len)
 {
+	using boost::timer::cpu_timer;
+	using boost::timer::cpu_times;
+
 	BDA dma;
 	const unsigned int BASE_DMA_UP = (0x2C >> 2);
 	uint32_t * const us_engine = bar0 + BASE_DMA_UP;
 	const unsigned int BASE_DMA_DOWN = (0x50 >> 2);
 	uint32_t * const ds_engine = bar0 + BASE_DMA_DOWN;
 	const unsigned int bar_no = 2;
-	time_t time_start;
-	time_t time_end;
-	double time_diff;
+	cpu_timer timer;
+	cpu_times times;
+	double t_diff;
 	size_t bytes_sent;
 
 	uint32_t *ptr = static_cast<uint32_t *>(km->getBuffer());
@@ -222,35 +238,37 @@ void testDMAKernelMemory(
 	dma.next_bda_l = 0x0;
 
 	std::cout << "[Write test]" << std::endl;
-	time(&time_start);
+	timer.start();
 	for(bytes_sent = 0; bytes_sent < test_len; bytes_sent += buf_size) {
 		dma.reset(ds_engine);
 		dma.write(ds_engine);
 
 		dma.wait_finish(ds_engine);
 	}
-	time(&time_end);
+	timer.stop();
 
-	time_diff = difftime(time_end, time_start);;
+	times = timer.elapsed();
+	t_diff = times.wall/1000000000.0;
 	std::cout << "Write time: " << std::fixed << std::setprecision(2) <<
-		time_diff << " seconds" << std::endl;
+		format(times, 2, "%w") << " seconds" << std::endl;
 	std::cout << "Write speed: " << std::fixed << std::setprecision(2) <<
-		(bytes_sent/time_diff)/pow(2,20) << " [MB/s]" << std::endl;
+		(bytes_sent/t_diff)/pow(2,20) << " [MB/s]" << std::endl;
 
 	std::cout << "[Read test]" << std::endl;
-	time(&time_start);
+	timer.start();
 	for(bytes_sent = 0; bytes_sent < test_len; bytes_sent += buf_size) {
 		dma.reset(us_engine);
 		dma.write(us_engine);
 
 		dma.wait_finish(us_engine);
 	}
-	time(&time_end);
+	timer.stop();
 
-	time_diff = difftime(time_end, time_start);;
+	times = timer.elapsed();
+	t_diff = times.wall/1000000000.0;
 	std::cout << "Read time: " << std::fixed << std::setprecision(2) <<
-		time_diff << " seconds" << std::endl;
+		format(times, 2, "%w") << " seconds" << std::endl;
 	std::cout << "Read speed: " << std::fixed << std::setprecision(2) <<
-		(bytes_sent/time_diff)/pow(2,20) << " [MB/s]\n" << std::endl;
+		(bytes_sent/t_diff)/pow(2,20) << " [MB/s]\n" << std::endl;
 }
 

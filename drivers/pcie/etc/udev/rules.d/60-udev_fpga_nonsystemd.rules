@@ -1,4 +1,0 @@
-# Permissions for the fpga devices
-
-ACTION=="add", KERNEL=="fpga*", OWNER="root", GROUP="users", MODE="660", SYMLINK+="bpm-%k", RUN+="/usr/local/bin/bpm-sw-start.sh /usr/local/bin -f /usr/local/etc/bpm_sw/bpm_sw.cfg -n be -t pcie -i %n -e /dev/fpga%n -s 0 -b tcp://127.0.0.1:8978 -l /media/remote_logs"
-ACTION=="remove", KERNEL=="fpga*", OWNER="root", GROUP="users", MODE="660", SYMLINK+="bpm-%k", RUN+="/usr/local/bin/bpm-sw-stop.sh %n"

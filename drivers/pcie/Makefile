@@ -21,7 +21,7 @@ install:
 uninstall:
 	$(Q)$(MAKE) -C $(SRCDIR) uninstall
 	@echo "UNINSTALL eat-dashes.sh"
-	-$(Q)rm -f $(PREFIX)/bin/eat-dashes.sh
+	-$(Q)rm -f $(PREFIX)/usr/local/bin/eat-dashes.sh
 	@echo "UNINSTALL 60-udev_fpga.rules"
 	-$(Q)rm -f $(PREFIX)/etc/udev/rules.d/60-udev_fpga.rules
 	-$(Q)rmdir $(PREFIX)/etc/udev/rules.d/

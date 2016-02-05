@@ -1,4 +1,4 @@
 # Permissions for the fpga devices
 
-ACTION=="add", KERNEL=="fpga*", OWNER="root", GROUP="users", MODE="660", PROGRAM="/usr/bin/eat-dashes.sh %k", SYMLINK+="fpga/%c", RUN+="/usr/local/bin/bpm-sw-start.sh /usr/local/bin -f /usr/local/etc/bpm_sw/bpm_sw.cfg -n be -t pcie -i %c -e /dev/fpga/%c -s 0 -b tcp://127.0.0.1:8978 -l /media/remote_logs"
-ACTION=="remove", KERNEL=="fpga*", PROGRAM="/usr/bin/eat-dashes.sh %k", RUN+="/usr/local/bin/bpm-sw-stop.sh %c"
+ACTION=="add", KERNEL=="fpga*", OWNER="root", GROUP="users", MODE="660", PROGRAM="/usr/local/bin/eat-dashes.sh %k", SYMLINK+="fpga/%c", RUN+="/usr/local/bin/bpm-sw-start.sh /usr/local/bin -f /usr/local/etc/bpm_sw/bpm_sw.cfg -n be -t pcie -i %c -e /dev/fpga/%c -s 0 -b tcp://127.0.0.1:8978 -l /media/remote_logs"
+ACTION=="remove", KERNEL=="fpga*", PROGRAM="/usr/local/bin/eat-dashes.sh %k", RUN+="/usr/local/bin/bpm-sw-stop.sh %c"

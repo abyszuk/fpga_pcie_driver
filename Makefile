@@ -20,17 +20,31 @@ all: kernel_driver lib_driver
 
 .PHONY: kernel_driver lib_driver install uninstall clean
 
-kernel_driver:
+kernel_driver: core_driver
+
+kernel_driver_clean: core_driver_clean
+
+kernel_driver_install: core_driver_install etc_driver_install
+
+kernel_driver_uninstall: core_driver_uninstall etc_driver_uninstall
+
+core_driver:
 	$(MAKE) -C $(DRIVER_DIR) all
 
-kernel_driver_clean:
+core_driver_clean:
 	$(MAKE) -C $(DRIVER_DIR) clean
 
-kernel_driver_install:
-	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) install
+core_driver_install:
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) core_install
 
-kernel_driver_uninstall:
-	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) uninstall
+core_driver_uninstall:
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) core_uninstall
+
+etc_driver_install:
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) etc_install
+
+etc_driver_uninstall:
+	$(MAKE) -C $(DRIVER_DIR) PREFIX=$(PREFIX) etc_uninstall
 
 lib_driver:
 	$(MAKE) -C $(LIB_DIR) all

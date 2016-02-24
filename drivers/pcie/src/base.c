@@ -285,6 +285,7 @@ static void fpga_destroy_misc_device(pcidriver_privdata_t *priv)
 static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	int err;
+    long slot_number;
 	pcidriver_privdata_t *privdata;
 
 	dev_info(&pdev->dev, " probe for device %04x:%04x\n",
@@ -353,8 +354,25 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	pci_set_drvdata( pdev, privdata );
 	privdata->pdev = pdev;
 
+#ifdef ENABLE_PHYSICAL_SLOT_NUMBER
+    /* Convert to decimal. Is this the right place to get the slot number? */
+    err = kstrtol(pdev->slot->kobj.name, 10, &slot_number);
+	if (err) {
+		dev_err(&privdata->pdev->dev, "Error converting slot number to decimal\n");
+		goto failed_conv_slot_number;
+	}
+
+	dev_info(&pdev->dev, "Creating device name "NODENAME"-%ld\n",
+		slot_number);
+	snprintf(privdata->name, PCIE_NAME_LEN, NODENAME"-%ld",
+		slot_number);
+#else
+    slot_number = privdata->pdev->bus->number << 8 | privdata->pdev->devfn;
+	dev_info(&pdev->dev, "Creating device name "NODENAME"-%04x\n",
+		slot_number);
 	snprintf(privdata->name, PCIE_NAME_LEN, NODENAME"-%04x",
-		privdata->pdev->bus->number << 8 | privdata->pdev->devfn);
+		slot_number);
+#endif
 
 	/* Device add to sysfs */
 	err = fpga_create_misc_device(privdata);
@@ -394,6 +412,7 @@ probe_device_create_fail:
 probe_irq_probe_fail:
 	pcidriver_irq_unmap_bars(privdata);
 failed_misc:
+failed_conv_slot_number:
 	kfree(privdata);
 probe_nomem:
 probe_disable_device:

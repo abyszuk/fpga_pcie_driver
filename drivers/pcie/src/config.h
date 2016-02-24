@@ -5,6 +5,9 @@
 /* Debug messages */
 #define DEBUG
 
+/* Device node creation */
+#define ENABLE_PHYSICAL_SLOT_NUMBER
+
 /* Enable/disable IRQ handling */
 #define ENABLE_IRQ
 

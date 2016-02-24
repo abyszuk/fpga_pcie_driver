@@ -356,7 +356,7 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 
 #ifdef ENABLE_PHYSICAL_SLOT_NUMBER
     /* Convert to decimal. Is this the right place to get the slot number? */
-    err = kstrtol(pdev->slot->kobj.name, 10, &slot_number);
+	err = kstrtol(pdev->slot->kobj.name, 10, &slot_number);
 	if (err) {
 		dev_err(&privdata->pdev->dev, "Error converting slot number to decimal\n");
 		goto failed_conv_slot_number;
@@ -367,7 +367,7 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	snprintf(privdata->name, PCIE_NAME_LEN, NODENAME"-%ld",
 		slot_number);
 #else
-    slot_number = privdata->pdev->bus->number << 8 | privdata->pdev->devfn;
+	slot_number = privdata->pdev->bus->number << 8 | privdata->pdev->devfn;
 	dev_info(&pdev->dev, "Creating device name "NODENAME"-%04x\n",
 		slot_number);
 	snprintf(privdata->name, PCIE_NAME_LEN, NODENAME"-%04x",

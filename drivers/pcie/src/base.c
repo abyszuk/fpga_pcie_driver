@@ -412,7 +412,9 @@ probe_device_create_fail:
 probe_irq_probe_fail:
 	pcidriver_irq_unmap_bars(privdata);
 failed_misc:
+#ifdef ENABLE_PHYSICAL_SLOT_NUMBER
 failed_conv_slot_number:
+#endif
 	kfree(privdata);
 probe_nomem:
 probe_disable_device:

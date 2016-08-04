@@ -70,7 +70,7 @@ int pd_open( int dev, pd_device_t *pci_handle, const char *dev_entry )
 	pci_handle->device = dev;
 
     if ( dev_entry ) {
-        snprintf( pci_handle->name, sizeof( pci_handle->name ), dev_entry );
+        snprintf( pci_handle->name, sizeof( pci_handle->name ), "%s", dev_entry );
     }
     else {
         snprintf( pci_handle->name, sizeof( pci_handle->name ), "/dev/fpga%d", dev );

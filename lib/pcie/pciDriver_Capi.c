@@ -338,7 +338,6 @@ int pd_getBARsize( pd_device_t *pci_handle, unsigned int bar )
 {
 	int ret;
 	pci_board_info info;
-	unsigned int id;
 
 	/* Check for null pointer */
 	if (pci_handle == NULL)

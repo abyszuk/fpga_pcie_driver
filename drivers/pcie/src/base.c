@@ -374,13 +374,6 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		slot_number);
 #endif
 
-	/* Device add to sysfs */
-	err = fpga_create_misc_device(privdata);
-	if (err) {
-		dev_err(&privdata->pdev->dev, "Error creating misc device\n");
-		goto failed_misc;
-	}
-
 	/* Setup mmaped BARs into kernel space */
 	if ((err = pcidriver_probe_irq(privdata)) != 0)
 		goto probe_irq_probe_fail;
@@ -406,12 +399,19 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	sysfs_attr(umem_unmap);
 	#undef sysfs_attr
 
+	/* Device register */
+	err = fpga_create_misc_device(privdata);
+	if (err) {
+		dev_err(&privdata->pdev->dev, "Error creating misc device\n");
+		goto failed_misc;
+	}
+
 	return 0;
 
+failed_misc:
 probe_device_create_fail:
 probe_irq_probe_fail:
 	pcidriver_irq_unmap_bars(privdata);
-failed_misc:
 #ifdef ENABLE_PHYSICAL_SLOT_NUMBER
 failed_conv_slot_number:
 #endif

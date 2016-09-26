@@ -351,7 +351,7 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	spin_lock_init(&(privdata->umemlist_lock));
 	atomic_set(&privdata->umem_count, 0);
 
-	pci_set_drvdata( pdev, privdata );
+	pci_set_drvdata(pdev, privdata);
 	privdata->pdev = pdev;
 
 #ifdef ENABLE_PHYSICAL_SLOT_NUMBER

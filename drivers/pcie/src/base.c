@@ -415,6 +415,7 @@ probe_irq_probe_fail:
 #ifdef ENABLE_PHYSICAL_SLOT_NUMBER
 failed_conv_slot_number:
 #endif
+	pci_set_drvdata(pdev, NULL);
 	kfree(privdata);
 probe_nomem:
 probe_disable_device:
@@ -463,6 +464,9 @@ static void pcidriver_remove(struct pci_dev *pdev)
 
 	/* Removing the device from sysfs */
 	fpga_destroy_misc_device(privdata);
+
+	/* Unset privdata */
+	pci_set_drvdata(pdev, NULL);
 
 	/* Releasing privdata */
 	kfree(privdata);

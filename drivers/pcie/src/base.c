@@ -436,6 +436,9 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	/* Get private data from the device */
 	privdata = pci_get_drvdata(pdev);
 
+	/* Removing the device from sysfs */
+	fpga_destroy_misc_device(privdata);
+
 	/* Removing sysfs attributes from class device */
 	#define sysfs_attr(name) do { \
 			class_device_remove_file(sysfs_attr_def_pointer, &sysfs_attr_def_name(name)); \
@@ -461,9 +464,6 @@ static void pcidriver_remove(struct pci_dev *pdev)
 #ifdef ENABLE_IRQ
 	pcidriver_remove_irq(privdata);
 #endif
-
-	/* Removing the device from sysfs */
-	fpga_destroy_misc_device(privdata);
 
 	/* Unset privdata */
 	pci_set_drvdata(pdev, NULL);

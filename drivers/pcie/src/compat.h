@@ -24,11 +24,7 @@ static inline const char *dev_name(struct device *dev) {
 	#define compat_lock_page SetPageLocked
 	#define compat_unlock_page ClearPageLocked
 #else
-	/* in v2.6.28, __set_page_locked and __clear_page_locked was introduced */
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
-		#define compat_lock_page __set_page_locked
-		#define compat_unlock_page __clear_page_locked
-	#else
+        #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,27) || LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
 		/* However, in v2.6.27 itself, neither of them is there, so
 		 * we need to use our own function fiddling with bits inside
 		 * the page struct :-\ */
@@ -39,7 +35,19 @@ static inline const char *dev_name(struct device *dev) {
 		static inline void compat_unlock_page(struct page *page) {
 			__clear_bit(PG_locked, &page->flags);
 		}
+	#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
+		/* in v2.6.28, __set_page_locked and __clear_page_locked was introduced */
+			#define compat_lock_page __set_page_locked
+			#define compat_unlock_page __clear_page_locked
 	#endif
+#endif
+
+/* After 4.6, no more page_cache_release (). So just create an alias to put_page (), as this
+ * was like this before */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,6,0)
+	#define page_cache_release_compat page_cache_release
+#else
+	#define page_cache_release_compat put_page
 #endif
 
 /* Before 2.6.13, simple_class was the standard interface. Nowadays, it's just called class */
@@ -188,5 +196,12 @@ static inline void set_pages_reserved_compat(unsigned long cpua, unsigned long s
                SetPageReserved(page);
 #endif
 }
+
+/* Kernelk 4.6.0 change get_user_pages () to get_user_pages_remote () */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+#define get_user_pages_compat get_user_pages_remote
+#else
+#define get_user_pages_compat get_user_pages
+#endif
 
 #endif

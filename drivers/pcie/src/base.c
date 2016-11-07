@@ -399,6 +399,13 @@ static int pcidriver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	sysfs_attr(umem_unmap);
 	#undef sysfs_attr
 
+	init_completion(&privdata->user_comp);
+
+	/* The user refcount starts with one to inidicate an active device */
+	atomic_set(&privdata->user_refcount, 1);
+
+	mod_info_dbg("pcidriver_probe: user_refcount = %d\n", atomic_read(&privdata->user_refcount));
+
 	/* Device register */
 	err = fpga_create_misc_device(privdata);
 	if (err) {
@@ -424,6 +431,21 @@ probe_pcien_fail:
  	return err;
 }
 
+static void wait_for_clients(pcidriver_privdata_t *privdata)
+{
+	/*
+	 * Remove the device init value and complete the device if there is
+	 * no clients or wait for active clients to finish.
+	 */
+	if (atomic_dec_and_test(&privdata->user_refcount))
+		complete(&privdata->user_comp);
+
+	mod_info_dbg("wait_for_clients: waiting for completion. user_refcount = %d\n", 
+		atomic_read(&privdata->user_refcount));
+	wait_for_completion(&privdata->user_comp);
+	mod_info_dbg("wait_for_clients: finished waiting for completion\n");
+}
+
 /**
  *
  * This function is called when disconnecting a device
@@ -439,7 +461,11 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	/* Removing the device from sysfs */
 	fpga_destroy_misc_device(privdata);
 
+	/* wait for existing user space clients to finish */
+	wait_for_clients(privdata);
+
 	/* Removing sysfs attributes from class device */
+#if 0
 	#define sysfs_attr(name) do { \
 			class_device_remove_file(sysfs_attr_def_pointer, &sysfs_attr_def_name(name)); \
 			} while (0)
@@ -457,6 +483,7 @@ static void pcidriver_remove(struct pci_dev *pdev)
 	sysfs_attr(umappings);
 	sysfs_attr(umem_unmap);
 	#undef sysfs_attr
+#endif
 
 	/* Free all allocated kmem buffers before leaving */
 	pcidriver_kmem_free_all( privdata );
@@ -508,9 +535,19 @@ static struct file_operations pcidriver_fops = {
  */
 int pcidriver_open(struct inode *inode, struct file *filp)
 {
+	pcidriver_privdata_t *privdata;
 	/* Set the private data area for the file */
 	struct miscdevice *mdev_ptr = filp->private_data;
 	filp->private_data = container_of(mdev_ptr, pcidriver_privdata_t, mdev);
+
+	privdata = filp->private_data;
+
+	if (!atomic_inc_not_zero(&privdata->user_refcount)) {
+		mod_info_dbg("pcidriver_open: user_refcount = %d, should be > 0\n", atomic_read(&privdata->user_refcount));
+		return -ENXIO;
+	}
+
+	mod_info_dbg("pcidriver_open: user_refcount = %d\n", atomic_read(&privdata->user_refcount));
 
 	return 0;
 }
@@ -527,6 +564,11 @@ int pcidriver_release(struct inode *inode, struct file *filp)
 
 	/* Get the private data area */
 	privdata = filp->private_data;
+
+	if (atomic_dec_and_test(&privdata->user_refcount))
+		complete(&privdata->user_comp);
+
+	mod_info_dbg("pcidriver_release: user_refcount = %d\n", atomic_read(&privdata->user_refcount));
 
 	return 0;
 }

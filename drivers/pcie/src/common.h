@@ -49,6 +49,9 @@ typedef struct  {
 	spinlock_t kmemlist_lock;			/* Spinlock to lock kmem list operations */
 	struct list_head kmem_list;			/* List of 'kmem_list_entry's associated with this device */
 	atomic_t kmem_count;				/* id for next kmem entry */
+	
+	atomic_t user_refcount;				/* Keeps track of user space clients */	
+	struct completion user_comp;			/* Used to wait for outstanding user space clients before dev removal */
 
 	spinlock_t umemlist_lock;			/* Spinlock to lock umem list operations */
 	struct list_head umem_list;			/* List of 'umem_list_entry's associated with this device */
